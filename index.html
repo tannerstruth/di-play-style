@@ -768,11 +768,7 @@ function pageMatchup(h){
     <label>Team B<select id="muB">${MU.options(b)}</select></label></div>
   <div class="card"><div class="mu-head">${muTeamHead(a,false)}
     <div class="mu-mid"><div class="l">Expected PPP</div><div class="x"><div><b>${f3(muExp(a,b))}</b>${muName(a)} offense</div><div><b>${f3(muExp(b,a))}</b>${muName(b)} offense</div></div><div class="m" style="font-size:11px;color:var(--ink-3);margin-top:4px">D-I average ${f3(MU_AVG.ppp)}</div></div>
-    ${muTeamHead(b,true)}</div>
-   <div class="mu-key"><span><i style="background:linear-gradient(90deg,rgba(${css("--neg")},.6),rgba(${css("--pos")},.1),rgba(${css("--pos")},.65))"></i>PPP / turnover %ile: 100 = best in ${esc(MU.scope)} (offense scores most, defense allows least)</span>
-    <span><i style="background:linear-gradient(90deg,color-mix(in srgb,var(--ink) 4%,transparent),color-mix(in srgb,var(--ink) 26%,transparent))"></i>Frequency %ile: 100 = runs it (or sees it) most often</span>
-    <span><b style="color:var(--ink-2)">Bold</b> = the side with the better percentile</span>
-    <span>Sub-bucket rows show PPP, with how often each side runs or sees it underneath</span></div></div>
+    ${muTeamHead(b,true)}</div></div>
   <div class="mu-grid">${cards.join("")}</div>
   <p class="note">Games ${esc(D.meta.coverage_short||"")}. Expected PPP = offense PPP + defense PPP allowed − D-I average. Schemes are inferred from outcomes; see the Glossary.</p>`;
   document.getElementById("muA").onchange=e=>go(e.target.value,b);
