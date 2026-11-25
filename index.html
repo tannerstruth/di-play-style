@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D-I Play-Type Dashboard</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f5f5f3; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e2e1dc;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#7d7c76; --accent:#2a78d6;
+  --b-sc:#2a78d6; --b-roll:#eb6834; --b-cut:#1baf7a; --b-shoot:#eda100; --b-post:#e87ba4;
+  --b-trans:#a8a7a0; --b-put:#7d7c76; --b-other:#d6d5cf;
+  --pos:42,120,214; --neg:227,73,72; --seq:42,120,214;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#262624; --border:#33332f;
+    --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8f8e86; --accent:#3987e5;
+    --b-sc:#3987e5; --b-roll:#d95926; --b-cut:#199e70; --b-shoot:#c98500; --b-post:#d55181;
+    --b-trans:#6b6a64; --b-put:#8f8e86; --b-other:#45443f;
+    --pos:57,135,229; --neg:230,103,103; --seq:57,135,229;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#262624; --border:#33332f;
+  --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8f8e86; --accent:#3987e5;
+  --b-sc:#3987e5; --b-roll:#d95926; --b-cut:#199e70; --b-shoot:#c98500; --b-post:#d55181;
+  --b-trans:#6b6a64; --b-put:#8f8e86; --b-other:#45443f;
+  --pos:57,135,229; --neg:230,103,103; --seq:57,135,229;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+header.top{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border)}
+.topin{max-width:1280px;margin:0 auto;padding:10px 20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;font-size:15px;white-space:nowrap}
+.brand small{display:block;font-weight:400;color:var(--ink-3);font-size:12px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{color:var(--ink-2);padding:6px 10px;border-radius:6px;font-weight:500}
+nav a.on{background:var(--surface-2);color:var(--ink)} nav a:hover{text-decoration:none;background:var(--surface-2)}
+.spacer{flex:1}
+button.theme{background:none;border:1px solid var(--border);color:var(--ink-2);border-radius:6px;padding:5px 9px;cursor:pointer}
+main{max-width:1280px;margin:0 auto;padding:20px}
+h1{font-size:24px;margin:0 0 4px} h2{font-size:17px;margin:0 0 10px} h3{font-size:14px;margin:0 0 8px;color:var(--ink-2)}
+.sub{color:var(--ink-2);margin:0 0 16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.grid{display:grid;gap:16px} .g2{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))} .g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0 16px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.tile .l{color:var(--ink-3);font-size:12px} .tile .v{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums} .tile .c{color:var(--ink-2);font-size:12px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--ink-2);font-weight:500}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px}
+.controls label{display:flex;flex-direction:column;font-size:12px;color:var(--ink-3);gap:3px}
+select,input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;border:0;background:var(--surface);color:var(--ink-2);padding:6px 14px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.tw{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border)}
+th{position:sticky;top:0;background:var(--surface-2);font-size:12px;color:var(--ink-2);font-weight:600;z-index:1}
+th.s{cursor:pointer;user-select:none} th.s:hover{color:var(--ink)}
+th .ar{color:var(--accent)}
+th.grp{text-align:center;border-left:1px solid var(--border)}
+td.l,th.l{text-align:left}
+.tw table tr>:first-child{position:sticky;left:0;background:var(--surface);z-index:2} .tw thead tr>:first-child{background:var(--surface-2);z-index:3} td.bl,th.bl{border-left:1px solid var(--border)}
+tr.subrow td{color:var(--ink-2);font-size:13px} tr.subrow td.l{padding-left:26px}
+tr.avg td{font-style:italic;color:var(--ink-2);background:var(--surface-2)}
+tr.hl td{font-weight:650}
+tbody tr:hover td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)}
+.pc{display:inline-block;min-width:34px;padding:1px 6px;border-radius:5px;text-align:center}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.toggle{cursor:pointer;color:var(--ink-3);display:inline-block;width:14px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--ink-2);margin:6px 0 4px}
+.note{font-size:12px;color:var(--ink-3);margin-top:8px}
+.tip{position:fixed;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:50;display:none;max-width:280px}
+.tip b{display:block;margin-bottom:2px}
+svg text{fill:var(--ink-2);font-size:11px}
+.teamcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.teamcard{display:block;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.teamcard:hover{text-decoration:none;border-color:var(--accent)}
+.teamcard .n{font-weight:650}
+.gl dt{font-weight:650;margin-top:10px} .gl dd{margin:2px 0 0 0;color:var(--ink-2)}
+.gl table td,.gl table th{text-align:left;white-space:normal}
+.pbar{height:8px;background:var(--surface-2);border-radius:4px;position:relative;margin-top:4px}
+.pbar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--accent)}
+.empty{color:var(--ink-3);padding:20px;text-align:center}
+button.pg{font:inherit;background:var(--surface);border:1px solid var(--border);color:var(--ink-2);border-radius:6px;padding:5px 12px;cursor:pointer} button.pg:disabled{opacity:.4;cursor:default}
+@media (max-width:640px){.g2{grid-template-columns:1fr} main{padding:12px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="topin">
+  <div class="brand">D-I Play Types <small id="metaLine"></small></div>
+  <nav id="nav">
+    <a href="#overview" data-p="overview">Overview</a><a href="#team" data-p="team">Team</a><a href="#player" data-p="player">Player</a>
+    <a href="#team-leaderboard" data-p="team-leaderboard">Team Leaderboard</a><a href="#player-leaderboard" data-p="player-leaderboard">Player Leaderboard</a><a href="#glossary" data-p="glossary">Glossary</a>
+  </nav>
+  <div class="spacer"></div>
+  <button class="theme" id="themeBtn" title="Toggle light/dark">Light / Dark</button>
+</div></header>
+<main id="app"><div class="empty">Loading every D-I team and player…</div></main>
+<div class="tip" id="tip"></div>
+<script>
+"use strict";
+(async function(){
+let DATA;
+try{
+  const get=u=>fetch(u).then(r=>{ if(!r.ok) throw new Error(u+" "+r.status); return r.json(); });
+  const [C,PL]=await Promise.all([get("data/core.json"),get("data/players.json")]);
+  DATA=inflate(C,PL);
+}catch(err){ document.getElementById("app").innerHTML=`<div class="empty">Could not load the data (${String(err.message||err).replace(/[<>&]/g,"")}). Reload the page to try again.</div>`; return; }
+// ---------------------------------------------------------------- data inflation (compact JSON -> the AE dashboard's record shapes)
+function inflate(C,PL){
+  const T=C.teams.map(([id,name,short,conf])=>({id,name,short,conf}));
+  const rec=(row,name,games)=>{ const [u,bi,plays,points,freq,fhc,ppp,fp,pp,tov]=row; const [bucket,sub]=C.bs[bi];
+    return {team:name,bucket,sub,games,plays,plays_pg:games?plays/games:null,points,ppg:games?points/games:null,freq,freq_halfcourt:fhc,ppp,freq_pctile:fp,ppp_pctile:pp,tov_rate:tov}; };
+  const tt=rows=>rows.map(r=>rec(r,T[r[0]].name,C.tgames[r[0]]));
+  const P=PL.players.map(([id,t,player,role,src,detail,games])=>({id,team:T[t].name,player,role,role_source:src,role_detail:detail,games}));
+  const prow=PL.rows.map(r=>{ const p=P[r[0]]; const o=rec(r,p.team,p.games); o.player=p.player; o.role=p.role; o.pid=r[0]; return o; });
+  const psc=PL.sc.map(r=>{ const p=P[r[0]]; const o={team:p.team,player:p.player,role:p.role,games:p.games,pid:r[0]}; PL.sc_cols.forEach((k,i)=>o[k]=r[i+1]); return o; });
+  const tn=x=>({...x,team:T[x.t].name});
+  return {meta:C.meta, T, bs:C.bs, confs:C.confs, conf_files:C.conf_files, players_meta:P,
+    team_offense:tt(C.toff), team_defense:tt(C.tdef), team_offense_selfcreation:C.sc_off.map(tn), team_defense_selfcreation:C.sc_def.map(tn),
+    team_archetypes:C.arche.map(tn), player_offense:prow, player_selfcreation:psc, d1avg_off:C.d1avg_off, d1avg_def:C.d1avg_def, team_games:[],
+    short:Object.fromEntries(T.map(t=>[t.name,t.short]))};
+}
+// ---------------------------------------------------------------- constants
+const BUCKETS = ["Self-Creation","Rollers","Off-Ball Cutters","Off-Ball Shooters","Post-Ups"];
+const CONTEXT = ["Transition","Putbacks","Other"];
+const ALLB = BUCKETS.concat(CONTEXT);
+const BVAR = {"Self-Creation":"--b-sc","Rollers":"--b-roll","Off-Ball Cutters":"--b-cut","Off-Ball Shooters":"--b-shoot",
+  "Post-Ups":"--b-post","Transition":"--b-trans","Putbacks":"--b-put","Other":"--b-other"};
+const SHORT = {"Self-Creation":"Self-Create","Rollers":"Rollers","Off-Ball Cutters":"Cutters","Off-Ball Shooters":"Shooters","Post-Ups":"Post-Ups","Transition":"Transition","Putbacks":"Putbacks","Other":"Other"};
+const SUBS = {"Self-Creation":["Dribble Jumper","Rim Attack","Turnovers"],"Rollers":["Roll to Rim","Pick-and-Pop","Turnovers"],
+  "Off-Ball Cutters":["Cut","Turnovers"],"Off-Ball Shooters":["Catch-and-Shoot 3","Big-Assisted C&S 3","Catch-and-Shoot 2","Turnovers"],
+  "Post-Ups":["Post-Up Scoring","High-Low","Turnovers"],"Transition":[],"Putbacks":[],"Other":["Team Turnover"]};
+// sub-buckets come from the data, so a sub-bucket added to the model shows up without a template change
+if(DATA && DATA.bs){ for(const k in SUBS) SUBS[k]=[]; DATA.bs.forEach(([b,s])=>{ if(s!=="All") (SUBS[b]||(SUBS[b]=[])).push(s); }); }
+const ROLES = ["On-Ball Guard","Wing","Stretch Big","Big"];
+const CSSC={}; const css = v => CSSC[v]!==undefined? CSSC[v] : (CSSC[v]=getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+const bcol = b => `var(${BVAR[b]||"--b-other"})`;
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const isNum = v => typeof v==="number" && isFinite(v);
+const f1 = v => isNum(v)? v.toFixed(1) : "—";
+const f2 = v => isNum(v)? v.toFixed(2) : "—";
+const f3 = v => isNum(v)? v.toFixed(3) : "—";
+const fp = v => isNum(v)? v.toFixed(1)+"%" : "—";
+const f0 = v => isNum(v)? String(Math.round(v)) : "—";
+const shortTeam = t => (DATA.short && DATA.short[t]) || t;
+const enc = encodeURIComponent;
+
+// ---------------------------------------------------------------- data prep
+const D = DATA;
+const TEAMS = D.T.map(t=>t.name).sort();
+const TINFO = Object.fromEntries(D.T.map(t=>[t.name,t]));
+const CONFS = D.confs;
+const confOf = t => (TINFO[t]||{}).conf||"";
+const TEAMS_BY_CONF = Object.fromEntries(CONFS.map(c=>[c,TEAMS.filter(t=>confOf(t)===c)]));
+const arch = Object.fromEntries(D.team_archetypes.map(r=>[r.team,r]));
+const TROWS = {off:{},def:{}};
+D.team_offense.forEach(r=>(TROWS.off[r.team]||(TROWS.off[r.team]=[])).push(r));
+D.team_defense.forEach(r=>(TROWS.def[r.team]||(TROWS.def[r.team]=[])).push(r));
+function teamRows(side,team){ return TROWS[side==="def"?"def":"off"][team]||[]; }
+// grouped team picker (by conference)
+function teamOptions(cur){ return CONFS.map(c=>`<optgroup label="${esc(c)}">${TEAMS_BY_CONF[c].map(t=>`<option value="${esc(t)}" ${t===cur?"selected":""}>${esc(shortTeam(t))}</option>`).join("")}</optgroup>`).join(""); }
+function confOptions(cur,allLabel){ return `<option value="">${allLabel||"All conferences"}</option>`+CONFS.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join(""); }
+function getRow(rows,b,s){ return rows.find(r=>r.bucket===b && r.sub===(s||"All")); }
+function totals(rows){ // from bucket "All" rows
+  const a = rows.filter(r=>r.sub==="All");
+  const plays=a.reduce((s,r)=>s+(r.plays||0),0), pts=a.reduce((s,r)=>s+(r.points||0),0);
+  const g = Math.max(...a.map(r=>r.games||0));
+  return {plays,pts,games:g,ppg:pts/g,plays_pg:plays/g,ppp:plays?pts/plays:null};
+}
+const d1avg = side => D["d1avg_"+side]||[];
+function avgRow(side,b,s){ return d1avg(side).find(r=>r.bucket===b && r.sub===(s||"All")); }
+
+// players
+const PLAYERS = (()=>{
+  const m=new Map();
+  for(const r of D.player_offense){
+    const k=r.team+"|"+r.player;
+    if(!m.has(k)){ const pm=D.players_meta[r.pid]; m.set(k,{team:r.team,player:r.player,role:r.role,role_source:pm.role_source,role_detail:pm.role_detail,conf:confOf(r.team),rows:[]}); }
+    m.get(k).rows.push(r);
+  }
+  const sc = Object.fromEntries((D.player_selfcreation||[]).map(r=>[r.team+"|"+r.player,r]));
+  for(const [k,p] of m){
+    const t=totals(p.rows); Object.assign(p,t); p.sc=sc[k]||null; p.key=k;
+    p.freq={}; p.bppp={};
+    for(const b of ALLB){ const r=getRow(p.rows,b); p.freq[b]=r?r.freq:0; p.bppp[b]=r?r.ppp:null; }
+    p.primary = BUCKETS.slice().sort((a,b)=>(p.freq[b]||0)-(p.freq[a]||0))[0];
+  }
+  return [...m.values()];
+})();
+const pByKey = Object.fromEntries(PLAYERS.map(p=>[p.key,p]));
+const PLAYERS_BY_TEAM = {}; PLAYERS.forEach(p=>(PLAYERS_BY_TEAM[p.team]||(PLAYERS_BY_TEAM[p.team]=[])).push(p));
+Object.values(PLAYERS_BY_TEAM).forEach(a=>a.sort((x,y)=>x.player.localeCompare(y.player)));
+const SRC_LABEL = {"Sheet":"Tanner's sheet","Positional list":"Positional list","Archetype list":"Archetype list","Ratings + stats":"Ratings file + stats","Inferred":"Stat-inferred"};
+// PPP rank pools per bucket (players with 10+ plays), built on first use
+const RANKS = {};
+function rankOf(p,b,scope){
+  const key=b+"|"+(scope==="conf"?p.conf:"");
+  if(!RANKS[key]){ const pool=PLAYERS.filter(x=>(scope!=="conf"||x.conf===p.conf)&&x.bppp[b]!=null&&(getRow(x.rows,b)||{}).plays>=10).sort((x,y)=>y.bppp[b]-x.bppp[b]); RANKS[key]=new Map(pool.map((x,i)=>[x,i])); RANKS[key].n=pool.length; }
+  const m=RANKS[key]; return m.has(p)?`${m.get(p)+1} of ${m.n}`:"—";
+}
+// game-by-game files, one per conference, fetched when a team page needs them
+const GAMEFILES = {}; // conf -> "loading" | {games, rows}
+function confGames(conf, onload){
+  const g=GAMEFILES[conf]; if(g && !g.waiting) return g;
+  if(!g){ const w=GAMEFILES[conf]={waiting:[]}; const done=j=>{ GAMEFILES[conf]=j; w.waiting.forEach(f=>f()); };
+    fetch(D.conf_files[conf]).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(done).catch(()=>done({games:{},rows:[],failed:true})); }
+  if(onload) GAMEFILES[conf].waiting.push(onload);
+  return null;
+}
+
+// ---------------------------------------------------------------- color helpers
+function pctStyle(p, kind){ // kind: "eff" diverging (100 good), "freq" sequential
+  if(!isNum(p)) return "";
+  if(kind==="freq"){ const a=(p/100)*0.45; return `background:rgba(${css("--seq")},${a.toFixed(3)})`; }
+  const d=(p-50)/50, a=Math.abs(d)*0.5; const c = d>=0? css("--pos") : css("--neg");
+  return `background:rgba(${c},${a.toFixed(3)})`;
+}
+function pcell(p,kind,extra){ return `<td class="${extra||""}"><span class="pc" style="${pctStyle(p,kind)}">${f0(p)}</span></td>`; }
+
+// ---------------------------------------------------------------- tooltip
+const tip=document.getElementById("tip");
+function showTip(e,html){ tip.innerHTML=html; tip.style.display="block"; moveTip(e); }
+function moveTip(e){ const w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+14,y=e.clientY+14;
+  if(x+w>innerWidth-8) x=e.clientX-w-14; if(y+h>innerHeight-8) y=e.clientY-h-14; tip.style.left=x+"px"; tip.style.top=y+"px"; }
+function hideTip(){ tip.style.display="none"; }
+document.addEventListener("mouseover",e=>{ const t=e.target.closest("[data-tip]"); if(t) showTip(e,t.getAttribute("data-tip")); });
+document.addEventListener("mousemove",e=>{ if(tip.style.display==="block"){ if(e.target.closest("[data-tip]")) moveTip(e); else hideTip(); } });
+
+// ---------------------------------------------------------------- charts (plain SVG)
+// Stacked 100% horizontal bars: rows = [{label, href, mix:{bucket:freq}, sub}]
+function mixChart(rows, opts={}){
+  const W=opts.width||760, lw=opts.labelW||170, bh=22, gap=10, top=4;
+  const H=top+rows.length*(bh+gap);
+  const iw=W-lw-10;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(opts.aria||"Play-type mix")}">`;
+  rows.forEach((r,i)=>{
+    const y=top+i*(bh+gap); let x=lw;
+    const lab = r.href? `<a href="${r.href}"><text x="${lw-8}" y="${y+bh/2+4}" text-anchor="end" style="fill:var(--ink);font-weight:${r.bold?650:400}">${esc(r.label)}</text></a>`
+                       : `<text x="${lw-8}" y="${y+bh/2+4}" text-anchor="end" style="fill:var(--ink);font-style:${r.italic?"italic":"normal"}">${esc(r.label)}</text>`;
+    s+=lab;
+    const tot = ALLB.reduce((a,b)=>a+(r.mix[b]||0),0)||100;
+    ALLB.forEach(b=>{
+      const v=r.mix[b]||0; if(v<=0) return; const w=iw*v/tot; const ww=Math.max(w-2,0.5);
+      const t=`<b>${esc(r.label)}</b>${esc(b)}: ${fp(v)} of plays${isNum(r.ppp&&r.ppp[b])?`<br>PPP ${f3(r.ppp[b])}`:""}`;
+      s+=`<rect x="${x.toFixed(1)}" y="${y}" width="${ww.toFixed(1)}" height="${bh}" rx="3" style="fill:${bcol(b)}" data-tip="${esc(t)}"></rect>`;
+      if(w>34) s+=`<text x="${(x+w/2).toFixed(1)}" y="${y+bh/2+4}" text-anchor="middle" style="fill:#fff;font-weight:600;pointer-events:none">${Math.round(v)}</text>`;
+      x+=w;
+    });
+  });
+  s+="</svg>";
+  return mixLegend()+s;
+}
+function mixLegend(){ return `<div class="legend">${ALLB.map(b=>`<span><span class="sw" style="background:${bcol(b)}"></span>${b}</span>`).join("")}</div>`; }
+
+// Percentile dot plot: rows=[{label, a, b}] a=freq pctile, b=ppp pctile
+function pctDots(rows, labels){
+  const W=560, lw=130, rh=30, top=22; const H=top+rows.length*rh+18; const iw=W-lw-20;
+  const X=p=>lw+iw*p/100;
+  let s=`<div class="legend"><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" style="fill:none;stroke:var(--ink-2);stroke-width:2"/></svg> ${labels[0]}</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="5" style="fill:var(--accent)"/></svg> ${labels[1]}</span></div>`;
+  s+=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Percentiles by play type">`;
+  [0,25,50,75,100].forEach(t=>{ s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${top-6}" y2="${H-18}" style="stroke:var(--border);stroke-width:1;${t===50?"stroke-dasharray:3 3":""}"/><text x="${X(t)}" y="${H-4}" text-anchor="middle">${t}</text>`; });
+  s+=`<text x="${X(0)}" y="11">D-I percentile</text>`;
+  rows.forEach((r,i)=>{
+    const y=top+i*rh+rh/2-4;
+    s+=`<text x="${lw-8}" y="${y+4}" text-anchor="end" style="fill:var(--ink)">${esc(r.label)}</text>`;
+    s+=`<line x1="${X(0)}" x2="${X(100)}" y1="${y}" y2="${y}" style="stroke:var(--surface-2);stroke-width:6;stroke-linecap:round"/>`;
+    if(isNum(r.a)&&isNum(r.b)) s+=`<line x1="${X(r.a)}" x2="${X(r.b)}" y1="${y}" y2="${y}" style="stroke:var(--ink-3);stroke-width:2"/>`;
+    const tt=`<b>${esc(r.label)}</b>${labels[0]}: ${f0(r.a)}<br>${labels[1]}: ${f0(r.b)}${r.extra?"<br>"+r.extra:""}`;
+    if(isNum(r.a)) s+=`<circle cx="${X(r.a)}" cy="${y}" r="6" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:2" data-tip="${esc(tt)}"/>`;
+    if(isNum(r.b)) s+=`<circle cx="${X(r.b)}" cy="${y}" r="6" style="fill:var(--accent);stroke:var(--surface);stroke-width:2" data-tip="${esc(tt)}"/>`;
+    if(!isNum(r.a)&&!isNum(r.b)) s+=`<text x="${X(50)}" y="${y+4}" text-anchor="middle" style="fill:var(--ink-3)">under 10 plays, no percentile</text>`;
+  });
+  return s+"</svg>";
+}
+
+// ---------------------------------------------------------------- sortable table
+// cols: [{k, label, fmt(row)->html td, val(row)->sortable, cls, grp}]
+const tableState = {};
+function sortTable(id, cols, rows, opts={}){
+  const st = tableState[id] || (tableState[id]={k:opts.sortK, dir:opts.dir||-1});
+  const col = cols.find(c=>c.k===st.k) || cols[0];
+  const sorted = rows.slice();
+  sorted.sort((a,b)=>{
+    const va=col.val(a), vb=col.val(b);
+    const na = va==null || (typeof va==="number"&&!isFinite(va)), nb = vb==null || (typeof vb==="number"&&!isFinite(vb));
+    if(na&&nb) return 0; if(na) return 1; if(nb) return -1;
+    const c = typeof va==="string"? va.localeCompare(vb) : va-vb;
+    return st.dir===1? c : -c;
+  });
+  let h = `<div class="tw" style="max-height:${opts.maxH||"none"}"><table id="${id}">`;
+  if(opts.groups) h += `<thead><tr>${opts.groups.map(g=>`<th class="${g.cls||""} grp" colspan="${g.span}">${esc(g.label)}</th>`).join("")}</tr>`;
+  else h += `<thead>`;
+  h += `<tr>${cols.map(c=>`<th class="s ${c.cls||""}" data-k="${esc(c.k)}" ${c.title?`title="${esc(c.title)}"`:""}>${c.label}${c.k===st.k?` <span class="ar">${st.dir===1?"▲":"▼"}</span>`:""}</th>`).join("")}</tr></thead><tbody>`;
+  if(opts.pinned) h += opts.pinned;
+  if(!sorted.length) h += `<tr><td colspan="${cols.length}" class="empty">No rows match these filters.</td></tr>`;
+  (opts.slice? sorted.slice(opts.slice[0],opts.slice[1]) : sorted).forEach((r,i)=>{ h += `<tr class="${opts.rowCls?opts.rowCls(r):""}">${cols.map(c=>c.fmt(r,i)).join("")}</tr>`; });
+  h += `</tbody></table></div>`;
+  return h;
+}
+function wireSort(id, rerender){
+  const t=document.getElementById(id); if(!t) return;
+  t.querySelectorAll("th.s").forEach(th=>th.addEventListener("click",()=>{
+    const k=th.dataset.k, st=tableState[id];
+    if(st.k===k) st.dir*=-1; else { st.k=k; st.dir = (th.classList.contains("l")? 1 : -1); }
+    // keep the table's horizontal/vertical scroll and the page scroll where they were
+    const box=t.closest(".tw"), sl=box?box.scrollLeft:0, stp=box?box.scrollTop:0, wx=window.scrollX, wy=window.scrollY;
+    rerender();
+    const nt=document.getElementById(id), nb=nt&&nt.closest(".tw");
+    if(nb){ nb.scrollLeft=sl; nb.scrollTop=stp; }
+    window.scrollTo(wx,wy);
+  }));
+}
+
+// ---------------------------------------------------------------- shared stat columns
+const td = (v,cls)=>`<td class="${cls||""}">${v}</td>`;
+function statCols(opts={}){ // opts.def: defense, opts.noPct
+  const effTitle = opts.def? "D-I percentile of PPP allowed: 100 = fewest points allowed per play" : "D-I percentile of PPP: 100 = most efficient";
+  const freqTitle = opts.def? "D-I percentile of how often opponents use this play type against them" : "D-I percentile of how often this play type is used";
+  const pp = r=> r.sub==="Turnovers"||r.bucket==="Other"?null:r.ppp_pctile;
+  return [
+    {k:"games",label:"G",fmt:r=>td(f0(r.games),"bl"),val:r=>r.games,cls:"bl"},
+    {k:"plays",label:"Plays",fmt:r=>td(f1(r.plays)),val:r=>r.plays},
+    {k:"plays_pg",label:"Plays/G",fmt:r=>td(f1(r.plays_pg)),val:r=>r.plays_pg},
+    {k:"points",label:"Pts",fmt:r=>td(f1(r.points)),val:r=>r.points},
+    {k:"ppg",label:"Pts/G",fmt:r=>td(f1(r.ppg)),val:r=>r.ppg},
+    {k:"freq",label:"Freq",cls:"bl",fmt:r=>td(fp(r.freq),"bl"),val:r=>r.freq,title:"Share of all plays"},
+    {k:"freq_pctile",label:"Freq %ile",fmt:r=>pcell(r.freq_pctile,"freq"),val:r=>r.freq_pctile,title:freqTitle},
+    {k:"freq_halfcourt",label:"HC Freq",fmt:r=>td(fp(r.freq_halfcourt)),val:r=>r.freq_halfcourt,title:"Share of half-court plays only"},
+    {k:"ppp",label:opts.def?"PPP allowed":"PPP",cls:"bl",fmt:r=>td(f3(r.ppp),"bl"),val:r=>r.ppp},
+    {k:"ppp_pctile",label:opts.def?"Eff. %ile":"Eff. %ile",fmt:r=>pcell(pp(r),"eff"),val:r=>pp(r),title:effTitle},
+    {k:"tov_rate",label:"TOV%",cls:"bl",fmt:r=>td(fp(r.tov_rate),"bl"),val:r=>r.tov_rate,title:"Share of these plays that ended in a turnover"},
+  ];
+}
+
+// ---------------------------------------------------------------- router
+const app=document.getElementById("app");
+const slug = x => String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const TSLUG = Object.fromEntries(TEAMS.map(t=>[t,slug(shortTeam(t))]));
+function hrefT(t){ return "#team-"+TSLUG[t]; }
+function hrefP(t,p){ return "#player-"+TSLUG[t]+"--"+slug(p); }
+const ROUTES = {};
+TEAMS.forEach(t=>ROUTES["team-"+TSLUG[t]]=["team",t]);
+PLAYERS.forEach(p=>ROUTES[hrefP(p.team,p.player).slice(1)]=["player",p.team,p.player]);
+function route(){
+  const h=location.hash.replace(/^#/,"");
+  let r = ROUTES[h] || [h];
+  const page = r[0]==="team-leaderboard"?"teams": r[0]==="player-leaderboard"?"players": r[0];
+  const navKey = r[0];
+  document.querySelectorAll("#nav a").forEach(a=>{ const p=a.dataset.p; a.classList.toggle("on", p===navKey || (p==="overview"&&!navKey)); });
+  hideTip(); CUR_TEAM=null;
+  if(page==="team") return pageTeam(r[1]);
+  if(page==="player") return pagePlayer(r[1],r[2]);
+  if(page==="teams") return pageTeamLB();
+  if(page==="players") return pagePlayerLB();
+  if(page==="glossary") return pageGlossary();
+  return pageOverview();
+}
+window.addEventListener("hashchange",()=>{ route(); window.scrollTo(0,0); });
+
+// ---------------------------------------------------------------- overview
+const ov={conf:""};
+function mixOf(rs){ const mix={},ppp={}; ALLB.forEach(b=>{const r=getRow(rs,b); mix[b]=r?r.freq:0; ppp[b]=r?r.ppp:null;}); return {mix,ppp}; }
+function confAvgMix(conf,side){ // mean team frequency, pooled PPP
+  const ts=TEAMS_BY_CONF[conf]||[]; const mix={},ppp={};
+  ALLB.forEach(b=>{ let f=0,pl=0,pt=0,n=0; ts.forEach(t=>{const r=getRow(teamRows(side||"off",t),b); if(r){f+=r.freq||0; pl+=r.plays||0; pt+=r.points||0;} n++;}); mix[b]=n?f/n:0; ppp[b]=pl?pt/pl:null; });
+  return {mix,ppp};
+}
+function pageOverview(){
+  const conf=ov.conf;
+  const avgMix={},avgPpp={}; ALLB.forEach(b=>{const r=avgRow("off",b); avgMix[b]=r?r.freq:0; avgPpp[b]=r?r.ppp:null;});
+  const onb=r=>r.mix["Self-Creation"]+r.mix["Rollers"];
+  const picker=`<div class="controls"><label>Conference<select id="ovConf">${confOptions(conf,"All of D-I (conference view)")}</select></label></div>`;
+  let body;
+  if(!conf){
+    const rows=CONFS.map(c=>({label:c,...confAvgMix(c),conf:c}));
+    rows.sort((a,b)=>onb(b)-onb(a));
+    rows.push({label:"D-I average",mix:avgMix,ppp:avgPpp,italic:true});
+    const ccards=CONFS.map(c=>{ const ts=TEAMS_BY_CONF[c]; let pl=0,pt=0,dl=0,dp=0; ts.forEach(t=>{const o=totals(teamRows("off",t)); pl+=o.plays; pt+=o.pts;}); 
+      return `<a class="teamcard" href="#overview" data-conf="${esc(c)}"><div class="n">${esc(c)}</div><div style="display:flex;gap:16px;font-size:13px;color:var(--ink-2);margin-top:6px"><span>${ts.length} teams</span><span>Off PPP <b style="color:var(--ink)">${f3(pl?pt/pl:null)}</b></span></div></a>`; }).join("");
+    body=`<div class="card"><h2>Conferences</h2><h3>Pick a conference for its team pages, play mix and archetypes.</h3><div class="teamcards">${ccards}</div></div>
+   <div class="card"><h2>Offensive play mix by conference</h2><h3>Average team share of offensive plays by bucket, sorted by on-ball share (Self-Creation + Rollers). Hover a segment for PPP.</h3>${mixChart(rows,{aria:"Offensive play mix by conference"})}</div>
+   <div class="card"><h2>Archetypes</h2><h3>Each style score is z-scored across D-I; a team gets the archetype with its highest z-score. All ${TEAMS.length} teams; pick a conference above to narrow it.</h3>${archTable(null)}</div>`;
+  } else {
+    const ts=TEAMS_BY_CONF[conf]||[];
+    const rows = ts.map(t=>({label:shortTeam(t),href:hrefT(t),...mixOf(teamRows("off",t)),team:t}));
+    rows.sort((a,b)=>onb(b)-onb(a));
+    rows.push({label:conf+" average",...confAvgMix(conf),italic:true});
+    rows.push({label:"D-I average",mix:avgMix,ppp:avgPpp,italic:true});
+    const cards = ts.map(t=>{
+      const a=arch[t]||{}, to=totals(teamRows("off",t)), tdf=totals(teamRows("def",t));
+      return `<a class="teamcard" href="${hrefT(t)}"><div class="n">${esc(t)}</div>
+      <div style="margin:4px 0 8px"><span class="badge">${esc(a.archetype||"")}</span></div>
+      <div style="display:flex;gap:16px;font-size:13px;color:var(--ink-2)"><span>Off PPP <b style="color:var(--ink)">${f3(to.ppp)}</b></span><span>Def PPP <b style="color:var(--ink)">${f3(tdf.ppp)}</b></span><span>${to.games} G</span></div></a>`;
+    }).join("");
+    body=`<div class="card"><h2>${esc(conf)} team pages</h2><div class="teamcards">${cards}</div></div>
+   <div class="card"><h2>Offensive play mix</h2><h3>Share of all offensive plays by bucket, sorted by on-ball share (Self-Creation + Rollers). Hover a segment for PPP.</h3>${mixChart(rows,{aria:"Offensive play mix by team"})}</div>
+   <div class="card"><h2>Archetypes</h2><h3>Each style score is z-scored across D-I; a team gets the archetype with its highest z-score.</h3>${archTable(conf)}</div>`;
+  }
+  app.innerHTML = `<h1>D-I play types, ${esc(D.meta.season_label)}</h1>
+   <p class="sub">${esc(D.meta.coverage)} All ${TEAMS.length} D-I teams in ${CONFS.length} conferences; percentiles rank against all of D-I.</p>
+   ${picker}${body}`;
+  document.getElementById("ovConf").onchange=e=>{ ov.conf=e.target.value; pageOverview(); };
+  app.querySelectorAll("[data-conf]").forEach(el=>el.onclick=e=>{ e.preventDefault(); ov.conf=el.dataset.conf; pageOverview(); window.scrollTo(0,0); });
+  wireSort("arch",pageOverview);
+}
+function archTable(conf){
+  const cols=[
+    {k:"team",label:"Team",cls:"l",fmt:r=>`<td class="l"><a href="${hrefT(r.team)}">${esc(r.team)}</a></td>`,val:r=>r.team},
+    {k:"archetype",label:"Archetype",cls:"l",fmt:r=>td(esc(r.archetype),"l"),val:r=>r.archetype},
+    {k:"onball_pnr",label:"On-Ball / PnR freq",cls:"bl",fmt:r=>td(fp(r.onball_pnr),"bl"),val:r=>r.onball_pnr,title:"Self-Creation + Rollers frequency"},
+    {k:"onball_pctile",label:"%ile",fmt:r=>pcell(r.onball_pctile,"freq"),val:r=>r.onball_pctile},
+    {k:"motion",label:"Motion freq",cls:"bl",fmt:r=>td(fp(r.motion),"bl"),val:r=>r.motion,title:"Off-Ball Shooters frequency"},
+    {k:"motion_pctile",label:"%ile",fmt:r=>pcell(r.motion_pctile,"freq"),val:r=>r.motion_pctile},
+    {k:"interior",label:"Interior freq",cls:"bl",fmt:r=>td(fp(r.interior),"bl"),val:r=>r.interior,title:"Post-Ups + Off-Ball Cutters frequency"},
+    {k:"interior_pctile",label:"%ile",fmt:r=>pcell(r.interior_pctile,"freq"),val:r=>r.interior_pctile},
+  ];
+  cols.splice(1,0,{k:"conf",label:"Conference",cls:"l",fmt:r=>td(esc(confOf(r.team)),"l"),val:r=>confOf(r.team)});
+  const rows=conf?D.team_archetypes.filter(r=>confOf(r.team)===conf):D.team_archetypes;
+  return sortTable("arch",cols,rows,{sortK:"archetype",dir:1,maxH:conf?"none":"70vh"});
+}
+
+// ---------------------------------------------------------------- team page
+const teamUI={side:"off",open:{}};
+// ---------------------------------------------------------------- game-by-game (team page)
+const gameUI={pick:"__all",metric:"freq"};
+const GL_CACHE={};
+function gameList(team,side){
+  const ck=team+"|"+side; if(GL_CACHE[ck]) return GL_CACHE[ck];
+  const F=confGames(confOf(team)); if(!F) return null;
+  const ti=D.T.findIndex(t=>t.name===team), si=side==="def"?1:0;
+  const m=new Map();
+  for(const r of F.rows){ if(r[0]!==ti||r[1]!==si) continue;
+    const [,,gid,bi,plays,points,freq,fhc,ppp,tov]=r;
+    if(!m.has(gid)){ const g=F.games[gid]||["",null,null,null,null,false]; const home=g[1]===ti; const opp=D.T[home?g[2]:g[1]];
+      const ts=home?g[3]:g[4], os=home?g[4]:g[3];
+      m.set(gid,{game_id:gid,date:g[0],opponent:opp?opp.short:"",home_away:g[5]?"N":home?"H":"A",result:(ts==null||os==null)?"":`${ts>os?"W":"L"} ${ts}-${os}`,rows:[]}); }
+    const [bucket,sub]=D.bs[bi]; m.get(gid).rows.push({bucket,sub,plays,points,freq,freq_halfcourt:fhc,ppp,tov_rate:tov});
+  }
+  return GL_CACHE[ck]=[...m.values()].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+function barsByGame(games,getV,fmtV,ref,refLab,color,title){
+  const W=560,H=190,l=44,r=10,t=28,b=34; const iw=W-l-r, ih=H-t-b;
+  const vals=games.map(getV); const mx=Math.max(...vals.filter(isNum),isNum(ref)?ref:0)*1.15||1;
+  const bw=iw/Math.max(games.length,1);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(title)}"><text x="0" y="12" style="fill:var(--ink);font-weight:600">${esc(title)}</text>`;
+  [0,0.5,1].forEach(f=>{const y=t+ih-ih*f; s+=`<line x1="${l}" x2="${W-r}" y1="${y}" y2="${y}" style="stroke:var(--border)"/><text x="${l-6}" y="${y+4}" text-anchor="end">${fmtV(mx*f)}</text>`;});
+  games.forEach((g,i)=>{ const v=vals[i]; const w=Math.min(bw*0.6,36), x=l+i*bw+(bw-w)/2;
+    if(isNum(v)){ const h=ih*v/mx; s+=`<rect x="${x}" y="${t+ih-h}" width="${w}" height="${Math.max(h,0.5)}" rx="3" style="fill:${color}" data-tip="${esc(`<b>${g.date} ${g.home_away==="H"?"vs":g.home_away==="N"?"vs (N)":"at"} ${g.opponent}</b>${g.result}<br>${fmtV(v)}`)}"/>`; }
+    const lab=String(g.opponent||"").split(" ")[0]; s+=`<text x="${x+w/2}" y="${H-18}" text-anchor="middle">${esc(lab.slice(0,10))}</text><text x="${x+w/2}" y="${H-5}" text-anchor="middle" style="fill:var(--ink-3)">${esc(String(g.date||"").slice(5))}</text>`; });
+  if(isNum(ref)){ const y=t+ih-ih*ref/mx; s+=`<line x1="${l}" x2="${W-r}" y1="${y}" y2="${y}" style="stroke:var(--ink-2);stroke-width:1.5;stroke-dasharray:4 3"/><line x1="${W-r-150}" x2="${W-r-132}" y1="8" y2="8" style="stroke:var(--ink-2);stroke-width:1.5;stroke-dasharray:4 3"/><text x="${W-r}" y="12" text-anchor="end" style="fill:var(--ink-2)">${esc(refLab)} ${fmtV(ref)}</text>`; }
+  return s+"</svg>";
+}
+function gameSection(team,side,rowsSeason){
+  const games=gameList(team,side);
+  if(!games) return `<div class="empty">Loading game-by-game data…</div>`;
+  if(!games.length) return `<div class="empty">No game-level data in this build.</div>`;
+  const opts=[`<option value="__all" ${gameUI.pick==="__all"?"selected":""}>All play types (compare)</option>`];
+  ALLB.filter(b=>b!=="Other").forEach(b=>{ opts.push(`<option value="${esc(b)}" ${gameUI.pick===b?"selected":""}>${esc(b)}</option>`); (SUBS[b]||[]).forEach(sb=>{const v=b+"|"+sb; opts.push(`<option value="${esc(v)}" ${gameUI.pick===v?"selected":""}>&nbsp;&nbsp;${esc(b)}: ${esc(sb)}</option>`);}); });
+  const gcell=g=>`<td class="l">${esc(g.date)}</td><td class="l">${g.home_away==="H"?"vs":g.home_away==="N"?"vs (N)":"at"} ${esc(g.opponent)}</td><td class="l">${esc(g.result)}</td>`;
+  const def=side==="def";
+  let h=`<div class="controls"><label>Play type<select id="gPick">${opts.join("")}</select></label>`;
+  if(gameUI.pick==="__all"){
+    const M={freq:["Freq",r=>r.freq,fp],ppp:[def?"PPP allowed":"PPP",r=>r.ppp,f3],plays:["Plays",r=>r.plays,f1],points:["Points",r=>r.points,f1],tov_rate:["TOV%",r=>r.tov_rate,fp]};
+    const [ml,mg,mf]=M[gameUI.metric]||M.freq;
+    h+=`<label>Show<select id="gMet">${Object.entries(M).map(([k,v])=>`<option value="${k}" ${gameUI.metric===k?"selected":""}>${v[0]}</option>`).join("")}</select></label></div>`;
+    const BB=ALLB.filter(b=>b!=="Other");
+    const shade=(b,r)=>{ if(!r) return ""; const sr=getRow(rowsSeason,b);
+      if(gameUI.metric==="ppp"){ const av=sr?sr.ppp:null; if(!isNum(av)||!isNum(r.ppp)||r.plays<3) return ""; let d=(r.ppp-av)/0.4; if(def) d=-d; d=Math.max(-1,Math.min(1,d)); return `background:rgba(${d>=0?css("--pos"):css("--neg")},${(Math.abs(d)*0.5).toFixed(3)})`; }
+      if(gameUI.metric==="freq"){ const av=sr?sr.freq:null; if(!isNum(av)||!isNum(r.freq)) return ""; const d=Math.max(-1,Math.min(1,(r.freq-av)/Math.max(av,4))); return d>0?`background:rgba(${css("--seq")},${(d*0.5).toFixed(3)})`:""; }
+      return ""; };
+    h+=`<div class="tw"><table><thead><tr><th class="l">Date</th><th class="l">Opponent</th><th class="l">Result</th>${BB.map((b,i)=>`<th class="${i===0?"bl":""}"><span class="sw" style="background:${bcol(b)}"></span>${SHORT[b]}</th>`).join("")}</tr></thead><tbody>`;
+    games.forEach(g=>{ h+=`<tr>${gcell(g)}${BB.map((b,i)=>{const r=g.rows.find(x=>x.bucket===b&&x.sub==="All"); const v=r?mg(r):null;
+      const tt=r?`<b>${esc(g.date)} ${esc(g.opponent)} · ${esc(b)}</b>${f1(r.plays)} plays, ${f1(r.points)} pts<br>Freq ${fp(r.freq)} · PPP ${f3(r.ppp)} · TOV ${fp(r.tov_rate)}`:"";
+      return `<td class="${i===0?"bl":""}" ${tt?`data-tip="${esc(tt)}"`:""}><span class="pc" style="${shade(b,r)}">${isNum(v)?mf(v):"—"}</span></td>`;}).join("")}</tr>`; });
+    h+=`<tr class="avg"><td class="l" colspan="3">Season</td>${BB.map((b,i)=>{const r=getRow(rowsSeason,b); const v=r?mg(r):null; return `<td class="${i===0?"bl":""}">${isNum(v)?mf(v):"—"}</td>`;}).join("")}</tr></tbody></table></div>`;
+    h+=`<p class="note">${gameUI.metric==="ppp"?`Shading compares each game to the team's own season ${def?"PPP allowed (blue = held opponents below it)":"PPP in that play type (blue = above, red = below)"}; games with fewer than 3 plays are not shaded.`:gameUI.metric==="freq"?"Blue = the play type was used more than the team's season rate in that game.":""} Hover any cell for the full line. Games vs. D-I opponents only.</p>`;
+  } else {
+    const [b,sb]=gameUI.pick.split("|"); const sub=sb||"All";
+    h+=`</div>`;
+    const sr=getRow(rowsSeason,b,sub), av=avgRow(side,b,sub);
+    const gr=games.map(g=>({...g, r:g.rows.find(x=>x.bucket===b&&x.sub===sub)}));
+    h+=`<div class="grid g2"><div>${barsByGame(gr,g=>g.r?g.r.freq:0,fp,sr&&sr.freq,"Season",bcol(b),"Frequency by game")}</div><div>${barsByGame(gr,g=>g.r&&g.r.plays>0?g.r.ppp:null,f3,sr&&sr.ppp,"Season",bcol(b),(def?"PPP allowed":"PPP")+" by game")}</div></div>`;
+    const c=(v,f)=>`<td>${f(v)}</td>`;
+    h+=`<div class="tw"><table><thead><tr><th class="l">Date</th><th class="l">Opponent</th><th class="l">Result</th><th class="bl">Plays</th><th>Pts</th><th>Freq</th><th>HC Freq</th><th>${def?"PPP allowed":"PPP"}</th><th>TOV%</th></tr></thead><tbody>`;
+    gr.forEach(g=>{ const r=g.r||{}; h+=`<tr>${gcell(g)}<td class="bl">${f1(r.plays||0)}</td>${c(r.points||0,f1)}${c(r.freq||0,fp)}${c(r.freq_halfcourt,fp)}${c(r.plays>0?r.ppp:null,f3)}${c(r.tov_rate,fp)}</tr>`; });
+    if(sr) h+=`<tr class="avg"><td class="l" colspan="3">Season (per game: ${f1(sr.plays_pg)} plays, ${f1(sr.ppg)} pts)</td><td class="bl">${f1(sr.plays)}</td>${c(sr.points,f1)}${c(sr.freq,fp)}${c(sr.freq_halfcourt,fp)}${c(sr.ppp,f3)}${c(sr.tov_rate,fp)}</tr>`;
+    if(av) h+=`<tr class="avg"><td class="l" colspan="3">D-I average (per game)</td><td class="bl">${f1(av.plays_pg)}</td>${c(av.ppg,f1)}${c(av.freq,fp)}${c(av.freq_halfcourt,fp)}${c(av.ppp,f3)}${c(av.tov_rate,fp)}</tr>`;
+    h+=`</tbody></table></div><p class="note">Games vs. D-I opponents only. Plays have decimals because missed shots and free-throw trips are split between play types.</p>`;
+  }
+  return h;
+}
+
+function teamPicker(cur){
+  return `<label>Team<select id="teamSel">${teamOptions(cur)}</select></label>`;
+}
+function bucketTable(id, rows, opts){ // grouped bucket table with expandable sub-rows
+  const cols = opts.cols || statCols(opts);
+  const openKey = id;
+  let h=`<div class="tw"><table id="${id}"><thead><tr><th class="l">Play type</th>${cols.map(c=>`<th class="${c.cls||""}" ${c.title?`title="${esc(c.title)}"`:""}>${c.label}</th>`).join("")}</tr></thead><tbody>`;
+  for(const b of ALLB){
+    const r=getRow(rows,b); if(!r) continue;
+    const subs = (SUBS[b]||[]).map(s=>getRow(rows,b,s)).filter(Boolean);
+    const isOpen = !!teamUI.open[openKey+b];
+    const ctx = CONTEXT.includes(b);
+    h+=`<tr class="${ctx?"":"hl"}"><td class="l">${subs.length?`<span class="toggle" data-open="${esc(openKey+b)}">${isOpen?"▾":"▸"}</span>`:`<span class="toggle"></span>`}<span class="sw" style="background:${bcol(b)}"></span>${esc(b)}</td>${cols.map(c=>c.fmt(r)).join("")}</tr>`;
+    if(isOpen) for(const s of subs) h+=`<tr class="subrow"><td class="l">${esc(s.sub)}</td>${cols.map(c=>c.fmt(s)).join("")}</tr>`;
+    if(opts.avg && isOpen===false){}
+  }
+  h+=`</tbody></table></div>`;
+  return h;
+}
+function wireToggles(rerender){
+  app.querySelectorAll("[data-open]").forEach(el=>el.addEventListener("click",()=>{ const k=el.dataset.open; teamUI.open[k]=!teamUI.open[k]; rerender(); }));
+}
+function scCard(r, def){
+  if(!r) return "";
+  const who = def? "Opponents' " : "";
+  const items=[
+    ["Self-Creation assists / G", f2(r.sc_ast_pg), null],
+    ["SC assist rate", fp(r.sc_ast_rate), r.sc_ast_rate_pctile],
+    ["SC turnover rate", fp(r.sc_tov_rate), r.sc_tov_rate_pctile],
+    ["SC PPP incl. passing", f3(r.sc_ppp_incl_passing), null],
+    ["Short-roll assists / G", f2(r.shortroll_ast_pg), null],
+    ["Post-up assists / G", f2(r.postup_ast_pg), null],
+    ["High-low assists / G", f2(r.highlow_ast_pg), null],
+  ];
+  return `<div class="tiles">${items.map(([l,v,p])=>`<div class="tile"><div class="l">${who}${l}</div><div class="v">${v}</div>${isNum(p)?`<div class="c">D-I %ile <span class="pc" style="${pctStyle(p,l.includes("turnover")?"eff":"freq")}">${f0(p)}</span></div>`:""}</div>`).join("")}</div>`;
+}
+let CUR_TEAM=null;
+function pageTeam(team){
+  if(!team || !TEAMS.includes(team)) team = TEAMS[0];
+  const off=teamRows("off",team), def=teamRows("def",team);
+  const to=totals(off), tdf=totals(def), a=arch[team]||{};
+  const side=teamUI.side, rows= side==="off"?off:def;
+  const pr = BUCKETS.map(b=>{ const r=getRow(rows,b)||{}; return {label:b,a:r.freq_pctile,b:r.ppp_pctile,extra:`Freq ${fp(r.freq)} · PPP ${f3(r.ppp)}`}; });
+  const mixRow=(lbl,rs,bold)=>{const mix={},ppp={}; ALLB.forEach(b=>{const r=getRow(rs,b); mix[b]=r?r.freq:0; ppp[b]=r?r.ppp:null;}); return {label:lbl,mix,ppp,bold};};
+  const avg=(s)=>{const mix={},ppp={}; ALLB.forEach(b=>{const r=avgRow(s,b); mix[b]=r?r.freq:0; ppp[b]=r?r.ppp:null;}); return {label:"D-I average",mix,ppp,italic:true};};
+  const sc = (side==="off"?D.team_offense_selfcreation:D.team_defense_selfcreation).find(r=>r.team===team);
+  const roster = PLAYERS_BY_TEAM[team]||[];
+  CUR_TEAM=team;
+  const rcols=[
+    {k:"player",label:"Player",cls:"l",fmt:p=>`<td class="l"><a href="${hrefP(p.team,p.player)}">${esc(p.player)}</a></td>`,val:p=>p.player},
+    {k:"role",label:"Role",cls:"l",fmt:p=>td(esc(p.role),"l"),val:p=>p.role},
+    {k:"games",label:"G",fmt:p=>td(f0(p.games)),val:p=>p.games},
+    {k:"plays_pg",label:"Plays/G",fmt:p=>td(f1(p.plays_pg)),val:p=>p.plays_pg},
+    {k:"ppg",label:"Pts/G",fmt:p=>td(f1(p.ppg)),val:p=>p.ppg},
+    {k:"ppp",label:"PPP",fmt:p=>td(f3(p.ppp)),val:p=>p.ppp},
+    ...ALLB.filter(b=>b!=="Other").map((b,i)=>({k:"f_"+b,label:SHORT[b],cls:i===0?"bl":"",title:b+" share of the player's plays",fmt:p=>`<td class="${i===0?"bl":""}">${p.freq[b]?fp(p.freq[b]):"—"}</td>`,val:p=>p.freq[b]||0})),
+  ];
+  const render=()=>pageTeam(team);
+  app.innerHTML = `
+  <div class="controls">${teamPicker(team)}</div>
+  <h1>${esc(team)}</h1>
+  <p class="sub"><span class="badge">${esc(a.archetype||"")}</span> &nbsp;${esc(confOf(team))} · ${to.games} games · <a href="#team-leaderboard" id="lbConf">compare on the leaderboard</a></p>
+  <div class="tiles">
+    <div class="tile"><div class="l">Offense PPP</div><div class="v">${f3(to.ppp)}</div><div class="c">${f1(to.plays_pg)} plays/G</div></div>
+    <div class="tile"><div class="l">Offense pts/G (model)</div><div class="v">${f1(to.ppg)}</div><div class="c">technical FTs excluded</div></div>
+    <div class="tile"><div class="l">Defense PPP allowed</div><div class="v">${f3(tdf.ppp)}</div><div class="c">${f1(tdf.plays_pg)} opp plays/G</div></div>
+    <div class="tile"><div class="l">On-Ball / PnR</div><div class="v">${fp(a.onball_pnr)}</div><div class="c">D-I %ile ${f0(a.onball_pctile)}</div><div class="pbar"><i style="width:${a.onball_pctile||0}%"></i></div></div>
+    <div class="tile"><div class="l">Motion / Off-ball</div><div class="v">${fp(a.motion)}</div><div class="c">D-I %ile ${f0(a.motion_pctile)}</div><div class="pbar"><i style="width:${a.motion_pctile||0}%"></i></div></div>
+    <div class="tile"><div class="l">Rim / Interior</div><div class="v">${fp(a.interior)}</div><div class="c">D-I %ile ${f0(a.interior_pctile)}</div><div class="pbar"><i style="width:${a.interior_pctile||0}%"></i></div></div>
+  </div>
+  <div class="controls"><div class="seg" id="sideSeg"><button data-s="off" class="${side==="off"?"on":""}">Offense</button><button data-s="def" class="${side==="def"?"on":""}">Defense</button></div></div>
+  <div class="grid g2">
+    <div class="card"><h2>${side==="off"?"Play mix":"Play mix allowed"}</h2><h3>Share of ${side==="off"?"plays":"opponent plays"} by bucket vs. the D-I average</h3>${mixChart([mixRow(shortTeam(team),rows,true),avg(side)],{width:560,labelW:120})}</div>
+    <div class="card"><h2>D-I percentiles</h2><h3>${side==="off"?"How often (frequency) and how well (PPP)":"How often opponents run it, and how well the defense holds it (100 = fewest PPP allowed)"}</h3>${pctDots(pr,["Frequency %ile", side==="off"?"PPP %ile":"PPP-allowed %ile"])}</div>
+  </div>
+  <div class="card"><h2>${side==="off"?"Offense":"Defense"} by play type</h2><h3>Click ▸ to open sub-buckets. Transition and Putbacks are listed so the frequencies add to 100%.</h3>${bucketTable("tb_"+side,rows,{def:side==="def"})}
+   <p class="note">PPP %ile shading: blue = better than the D-I median, red = worse. Freq %ile shading is volume only (darker = more often), not good or bad.</p></div>
+  <div class="card"><h2>Game by game${side==="def"?" (defense)":""}</h2><h3>${side==="off"?"How each play type was used, and how well, in every game":"What opponents ran against them, and how well, in every game"}</h3>${gameSection(team,side,rows)}</div>
+  <div class="card"><h2>${side==="off"?"Self-Creation passing":"Opponent Self-Creation passing"}</h2><h3>Assists out of Self-Creation and from bigs, counted on top of the shooter's bucket</h3>${scCard(sc,side==="def")}</div>
+  <div class="card"><h2>Roster play mix</h2><h3>Share of each player's plays by bucket. Click a name for the player page.</h3>${sortTable("roster",rcols,roster,{sortK:"plays_pg",dir:-1})}</div>`;
+  document.getElementById("teamSel").onchange=e=>{ location.hash=hrefT(e.target.value); };
+  document.getElementById("lbConf").onclick=()=>{ tlb.conf=confOf(team); };
+  confGames(confOf(team), ()=>{ if(CUR_TEAM===team && document.getElementById("teamSel")){ const wy=window.scrollY; render(); window.scrollTo(window.scrollX,wy); } });
+  document.querySelectorAll("#sideSeg button").forEach(b=>b.onclick=()=>{ teamUI.side=b.dataset.s; render(); });
+  wireToggles(render); wireSort("roster",render);
+  const gp=document.getElementById("gPick"); if(gp) gp.onchange=e=>{gameUI.pick=e.target.value; render();};
+  const gm=document.getElementById("gMet"); if(gm) gm.onchange=e=>{gameUI.metric=e.target.value; render();};
+}
+
+// ---------------------------------------------------------------- player page
+function pagePlayer(team, player){
+  let p = pByKey[team+"|"+player];
+  if(!p){ const cand=PLAYERS.filter(x=>!team||x.team===team).sort((a,b)=>b.plays-a.plays); p=cand[0]||PLAYERS[0]; }
+  const opts = (PLAYERS_BY_TEAM[p.team]||[]).map(x=>`<option value="${esc(x.key)}" ${x===p?"selected":""}>${esc(x.player)}</option>`).join("");
+  const pr = BUCKETS.filter(b=>getRow(p.rows,b)).map(b=>{ const r=getRow(p.rows,b); return {label:b,a:r.freq_pctile,b:r.ppp_pctile,extra:`${f1(r.plays)} plays · PPP ${f3(r.ppp)}`}; });
+  const teamMix={},teamPpp={}; const trs=teamRows("off",p.team); ALLB.forEach(b=>{const r=getRow(trs,b); teamMix[b]=r?r.freq:0; teamPpp[b]=r?r.ppp:null;});
+  const sc=p.sc;
+  // PPP rank within bucket (min 10 plays): conference and all of D-I
+  const cols=statCols({});
+  cols.push({k:"confrank",label:"Conf. PPP rank",fmt:r=>td(r.sub==="All"&&BUCKETS.includes(r.bucket)?rankOf(p,r.bucket,"conf"):"","bl"),val:()=>0,cls:"bl",title:"Rank in PPP among players in his conference with 10+ plays in this bucket"});
+  cols.push({k:"d1rank",label:"D-I PPP rank",fmt:r=>td(r.sub==="All"&&BUCKETS.includes(r.bucket)?rankOf(p,r.bucket,"d1"):""),val:()=>0,title:"Rank in PPP among all D-I players with 10+ plays in this bucket"});
+  const render=()=>pagePlayer(p.team,p.player);
+  app.innerHTML=`
+  <div class="controls">${teamPicker(p.team)}<label>Player<select id="plSel">${opts}</select></label><label>Find a player<input id="pFind" type="search" list="pList" placeholder="Type a name" style="width:220px"></label><datalist id="pList"></datalist></div>
+  <h1>${esc(p.player)}</h1>
+  <p class="sub"><a href="${hrefT(p.team)}">${esc(p.team)}</a> (${esc(p.conf)}) · <span class="badge" title="Role source">${esc(p.role)}</span> <span style="font-size:12px;color:var(--ink-3)">role from ${esc(SRC_LABEL[p.role_source]||"")}${p.role_detail?": "+esc(p.role_detail):""}</span> · primary play type: <b>${esc(p.primary)}</b></p>
+  <div class="tiles">
+    <div class="tile"><div class="l">Games</div><div class="v">${f0(p.games)}</div></div>
+    <div class="tile"><div class="l">Plays / G</div><div class="v">${f1(p.plays_pg)}</div><div class="c">${f1(p.plays)} total</div></div>
+    <div class="tile"><div class="l">Points / G (model)</div><div class="v">${f1(p.ppg)}</div><div class="c">${f1(p.pts)} total</div></div>
+    <div class="tile"><div class="l">Overall PPP</div><div class="v">${f3(p.ppp)}</div></div>
+    ${sc?`<div class="tile"><div class="l">SC assists / G</div><div class="v">${f2(sc.sc_ast_pg)}</div><div class="c">assist rate ${fp(sc.sc_ast_rate)}</div></div>
+    <div class="tile"><div class="l">SC turnover rate</div><div class="v">${fp(sc.sc_tov_rate)}</div><div class="c">SC PPP incl. passing ${f3(sc.sc_ppp_incl_passing)}</div></div>`:""}
+  </div>
+  <div class="grid g2">
+    <div class="card"><h2>Play mix</h2><h3>Share of his plays by bucket vs. his team</h3>${mixChart([{label:p.player,mix:p.freq,ppp:p.bppp,bold:true},{label:shortTeam(p.team),mix:teamMix,ppp:teamPpp,italic:true}],{width:560,labelW:150})}</div>
+    <div class="card"><h2>D-I percentiles</h2><h3>Among D-I players with 10+ plays in the bucket</h3>${pr.length?pctDots(pr,["Frequency %ile","PPP %ile"]):'<div class="empty">No plays yet.</div>'}</div>
+  </div>
+  <div class="card"><h2>Offense by play type</h2><h3>Click ▸ to open sub-buckets. Percentiles are blank under 10 plays in a bucket.</h3>${bucketTable("pb",p.rows,{cols})}
+  </div>
+  ${sc?`<div class="card"><h2>Passing overlays</h2><h3>Assists credited on top of the shooter's bucket</h3><div class="tiles">
+    <div class="tile"><div class="l">Self-Creation assists</div><div class="v">${f0(sc.sc_assists)}</div><div class="c">${f2(sc.sc_ast_pg)} per game</div></div>
+    <div class="tile"><div class="l">SC assist rate</div><div class="v">${fp(sc.sc_ast_rate)}</div></div>
+    <div class="tile"><div class="l">SC turnovers</div><div class="v">${f1(sc.sc_tov)}</div><div class="c">rate ${fp(sc.sc_tov_rate)}</div></div>
+    <div class="tile"><div class="l">SC PPP incl. passing</div><div class="v">${f3(sc.sc_ppp_incl_passing)}</div></div>
+    <div class="tile"><div class="l">Short-roll assists</div><div class="v">${f0(sc.shortroll_assists)}</div></div>
+    <div class="tile"><div class="l">Post-up assists</div><div class="v">${f0(sc.postup_assists)}</div></div>
+    <div class="tile"><div class="l">High-low assists</div><div class="v">${f0(sc.highlow_assists)}</div></div></div></div>`:""}`;
+  document.getElementById("plSel").onchange=e=>{ const q=pByKey[e.target.value]; location.hash=hrefP(q.team,q.player); };
+  document.getElementById("teamSel").onchange=e=>{ const t=e.target.value; const c=(PLAYERS_BY_TEAM[t]||[]).slice().sort((a,b)=>b.plays-a.plays)[0]; if(c) location.hash=hrefP(c.team,c.player); };
+  const pf=document.getElementById("pFind"), pl=document.getElementById("pList");
+  pf.oninput=()=>{ const v=pf.value.trim().toLowerCase();
+    const exact=PLAYERS.find(x=>(x.player+" ("+shortTeam(x.team)+")").toLowerCase()===v); if(exact){ location.hash=hrefP(exact.team,exact.player); return; }
+    if(v.length<2){ pl.innerHTML=""; return; }
+    pl.innerHTML=PLAYERS.filter(x=>x.player.toLowerCase().includes(v)).slice(0,25).map(x=>`<option value="${esc(x.player+" ("+shortTeam(x.team)+")")}"></option>`).join(""); };
+  wireToggles(render);
+}
+
+// ---------------------------------------------------------------- team leaderboard
+const tlb={side:"off",bucket:"__overview",sub:"All",conf:""};
+function pageTeamLB(){
+  const side=tlb.side, def=side==="def";
+  const bOpts=`<option value="__overview">All buckets (overview)</option>${ALLB.filter(b=>b!=="Other").map(b=>`<option ${tlb.bucket===b?"selected":""}>${b}</option>`).join("")}<option value="__sc" ${tlb.bucket==="__sc"?"selected":""}>Self-Creation passing</option>`;
+  const subs = SUBS[tlb.bucket]||[];
+  if(!["All",...subs].includes(tlb.sub)) tlb.sub="All";
+  const sOpts = ["All",...subs].map(s=>`<option ${tlb.sub===s?"selected":""}>${s}</option>`).join("");
+  const teamCell={k:"team",label:"Team",cls:"l",fmt:r=>r.__avg?td("D-I average","l"):`<td class="l"><a href="${hrefT(r.team)}">${esc(r.team)}</a></td>`,val:r=>r.team};
+  const archCell={k:"arch",label:"Archetype",cls:"l",fmt:r=>td(esc((arch[r.team]||{}).archetype||""),"l"),val:r=>(arch[r.team]||{}).archetype};
+  const confCell={k:"conf",label:"Conf.",cls:"l",fmt:r=>r.__avg?td("","l"):td(esc(confOf(r.team)),"l"),val:r=>confOf(r.team)};
+  const LT = tlb.conf? (TEAMS_BY_CONF[tlb.conf]||[]) : TEAMS;
+  let body="", id="tlb_"+side+"_"+tlb.bucket.replace(/\W/g,"")+"_"+tlb.sub.replace(/\W/g,"");
+  if(tlb.bucket==="__overview"){
+    const rows=LT.map(t=>{const rs=teamRows(side,t); const o={team:t,...totals(rs)}; ALLB.forEach(b=>{const r=getRow(rs,b)||{}; o["f_"+b]=r.freq; o["fp_"+b]=r.freq_pctile; o["p_"+b]=r.ppp; o["pp_"+b]=r.ppp_pctile;}); return o;});
+    const cols=[teamCell,confCell,{k:"games",label:"G",fmt:r=>td(f0(r.games)),val:r=>r.games},{k:"plays_pg",label:"Plays/G",fmt:r=>td(f1(r.plays_pg)),val:r=>r.plays_pg},{k:"ppp",label:def?"PPP allowed":"PPP",fmt:r=>td(f3(r.ppp)),val:r=>r.ppp}];
+    const groups=[{label:"",span:5}];
+    ALLB.filter(b=>b!=="Other").forEach(b=>{ groups.push({label:b,span:4,cls:"bl"});
+      cols.push({k:"f_"+b,label:"Freq",cls:"bl",fmt:r=>td(fp(r["f_"+b]),"bl"),val:r=>r["f_"+b]});
+      cols.push({k:"fp_"+b,label:"Freq %ile",fmt:r=>pcell(r["fp_"+b],"freq"),val:r=>r["fp_"+b],title:def?"100 = opponents run it most often against them":"100 = runs it most often in D-I"});
+      cols.push({k:"p_"+b,label:def?"PPP allowed":"PPP",fmt:r=>td(f3(r["p_"+b])),val:r=>r["p_"+b]});
+      cols.push({k:"pp_"+b,label:"Eff. %ile",fmt:r=>pcell(r["pp_"+b],"eff"),val:r=>r["pp_"+b],title:def?"100 = fewest points allowed per play":"100 = most efficient in D-I"});
+    });
+    body=sortTable(id,cols,rows,{sortK:"ppp",dir:def?1:-1,groups,maxH:"75vh"})+`<p class="note">Freq %ile = how often vs. D-I (style, single blue scale). Eff. %ile = PPP vs. D-I: blue = better than median, red = worse${def?"; on defense, 100 = fewest points allowed per play":""}. Scroll sideways for Transition and Putbacks. Pick a single bucket above for plays, points and per-game columns.</p>`;
+  } else if(tlb.bucket==="__sc"){
+    const rows=(def?D.team_defense_selfcreation:D.team_offense_selfcreation).filter(r=>!tlb.conf||confOf(r.team)===tlb.conf);
+    const cols=[teamCell,confCell,archCell,
+      {k:"games",label:"G",fmt:r=>td(f0(r.games)),val:r=>r.games},
+      {k:"sc_plays",label:"SC plays",fmt:r=>td(f1(r.sc_plays)),val:r=>r.sc_plays},
+      {k:"sc_assists",label:"SC ast",fmt:r=>td(f0(r.sc_assists)),val:r=>r.sc_assists},
+      {k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},
+      {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},
+      {k:"sc_ast_rate_pctile",label:"%ile",fmt:r=>pcell(r.sc_ast_rate_pctile,"freq"),val:r=>r.sc_ast_rate_pctile},
+      {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},
+      {k:"sc_tov_rate_pctile",label:"%ile",fmt:r=>pcell(r.sc_tov_rate_pctile,"eff"),val:r=>r.sc_tov_rate_pctile},
+      {k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
+      {k:"shortroll_ast_pg",label:"Short-roll ast/G",fmt:r=>td(f2(r.shortroll_ast_pg)),val:r=>r.shortroll_ast_pg},
+      {k:"postup_ast_pg",label:"Post-up ast/G",fmt:r=>td(f2(r.postup_ast_pg)),val:r=>r.postup_ast_pg},
+      {k:"highlow_ast_pg",label:"High-low ast/G",fmt:r=>td(f2(r.highlow_ast_pg)),val:r=>r.highlow_ast_pg}];
+    body=sortTable(id,cols,rows,{sortK:"sc_ast_rate",dir:-1,maxH:"75vh"})+`<p class="note">${def?"Defense: these are opponents' numbers against this team. ":""}SC assist rate %ile: 100 = highest assist rate in D-I. SC TOV rate %ile: ${def?"100 = forces the most Self-Creation turnovers":"100 = fewest Self-Creation turnovers"}.</p>`;
+  } else {
+    const rows=LT.map(t=>getRow(teamRows(side,t),tlb.bucket,tlb.sub)).filter(Boolean);
+    const av=avgRow(side,tlb.bucket,tlb.sub);
+    const cols=[teamCell,confCell,archCell,...statCols({def})];
+    const AVK=["freq","freq_halfcourt","ppp","plays_pg","ppg","tov_rate"];
+    const pinRow=(lab,a)=>`<tr class="avg">${cols.map(c=>c.k==="team"?td(esc(lab),"l"):(c.k==="arch"||c.k==="conf")?td("","l"):(AVK.includes(c.k)?c.fmt(a):td("",c.cls))).join("")}</tr>`;
+    let pinned = av? pinRow("D-I average",av) : "";
+    if(tlb.conf && rows.length){ const m=k=>rows.reduce((x,r)=>x+(r[k]||0),0)/rows.length; const pl=rows.reduce((x,r)=>x+(r.plays||0),0), pt=rows.reduce((x,r)=>x+(r.points||0),0);
+      pinned = pinRow(tlb.conf+" average",{freq:m("freq"),freq_halfcourt:BUCKETS.includes(tlb.bucket)?m("freq_halfcourt"):null,plays_pg:m("plays_pg"),ppg:m("ppg"),tov_rate:m("tov_rate"),ppp:pl?pt/pl:null}) + pinned; }
+    body=sortTable(id,cols,rows,{sortK:"ppp",dir:def?1:-1,pinned,maxH:"75vh"})+`<p class="note">The average rows stay pinned${tlb.conf?" (conference average: mean of its teams; PPP pooled)":""}. ${def?"On defense, PPP %ile 100 = fewest points allowed per play; Freq %ile 100 = opponents run it most often.":"PPP %ile 100 = most efficient in D-I; Freq %ile 100 = runs it most often."}</p>`;
+  }
+  app.innerHTML=`<h1>Team leaderboard: ${def?"Defense":"Offense"}</h1><p class="sub">${tlb.conf?`${esc(tlb.conf)}: ${LT.length} teams`:`All ${TEAMS.length} D-I teams`}. Percentiles rank against all of D-I. Click any column header to sort.</p>
+   <div class="controls"><div class="seg" id="sideSeg"><button data-s="off" class="${!def?"on":""}">Team Offense</button><button data-s="def" class="${def?"on":""}">Team Defense</button></div>
+   <label>Play type<select id="bSel">${bOpts}</select></label>
+   ${subs.length?`<label>Sub-bucket<select id="sSel">${sOpts}</select></label>`:""}
+   <label>Conference<select id="cSel">${confOptions(tlb.conf)}</select></label></div>
+   <div class="card">${body}</div>`;
+  document.querySelectorAll("#sideSeg button").forEach(b=>b.onclick=()=>{ tlb.side=b.dataset.s; pageTeamLB(); });
+  document.getElementById("bSel").onchange=e=>{ tlb.bucket=e.target.value; tlb.sub="All"; pageTeamLB(); };
+  const ss=document.getElementById("sSel"); if(ss) ss.onchange=e=>{ tlb.sub=e.target.value; pageTeamLB(); };
+  document.getElementById("cSel").onchange=e=>{ tlb.conf=e.target.value; pageTeamLB(); };
+  wireSort(id,pageTeamLB);
+}
+
+// ---------------------------------------------------------------- player leaderboard
+const plb={bucket:"Self-Creation",sub:"All",conf:"",team:"",role:"",min:10,q:"",metric:"freq",page:0};
+const PAGE=100; let qt=null;
+function pagedTable(id,cols,rows,opts){
+  const n=rows.length, pages=Math.max(1,Math.ceil(n/PAGE)); if(plb.page>=pages) plb.page=pages-1; if(plb.page<0) plb.page=0;
+  const a=plb.page*PAGE, b=Math.min(n,a+PAGE);
+  const html=sortTable(id,cols,rows,{...opts,slice:[a,b]});
+  const pager = n>PAGE? `<div class="controls" style="margin:10px 0 0;align-items:center"><button class="pg" data-pg="${plb.page-1}" ${plb.page?"":"disabled"}>‹ Prev</button><span style="font-size:12px;color:var(--ink-3)">Players ${a+1}–${b} of ${n}</span><button class="pg" data-pg="${plb.page+1}" ${plb.page<pages-1?"":"disabled"}>Next ›</button></div>` : `<p class="note">${n} player${n===1?"":"s"}</p>`;
+  return html+pager;
+}
+function pagePlayerLB(){
+  const bOpts=`<option value="__overview">All buckets (overview)</option>${ALLB.filter(b=>b!=="Other").map(b=>`<option ${plb.bucket===b?"selected":""}>${b}</option>`).join("")}<option value="__sc" ${plb.bucket==="__sc"?"selected":""}>Self-Creation passing</option>`;
+  const subs=SUBS[plb.bucket]||[]; if(!["All",...subs].includes(plb.sub)) plb.sub="All";
+  if(plb.team && plb.conf && confOf(plb.team)!==plb.conf) plb.team="";
+  const pass = p => (!plb.conf||p.conf===plb.conf)&&(!plb.team||p.team===plb.team)&&(!plb.role||p.role===plb.role)&&(!plb.q||p.player.toLowerCase().includes(plb.q.toLowerCase()));
+  const nameCell={k:"player",label:"Player",cls:"l",fmt:r=>`<td class="l"><a href="${hrefP(r.team,r.player)}">${esc(r.player)}</a></td>`,val:r=>r.player};
+  const teamCell={k:"team",label:"Team",cls:"l",fmt:r=>`<td class="l"><a href="${hrefT(r.team)}">${esc(shortTeam(r.team))}</a></td>`,val:r=>r.team};
+  const roleCell={k:"role",label:"Role",cls:"l",fmt:r=>{const p=pByKey[r.team+"|"+r.player]||{}; return `<td class="l" title="Role source: ${esc(SRC_LABEL[p.role_source]||"")}${p.role_detail?" ("+esc(p.role_detail)+")":""}">${esc(r.role)}</td>`;},val:r=>r.role};
+  const confCell={k:"conf",label:"Conf.",cls:"l",fmt:r=>td(esc(confOf(r.team)),"l"),val:r=>confOf(r.team)};
+  let body, id="plb_"+plb.bucket.replace(/\W/g,"")+"_"+plb.sub.replace(/\W/g,""), minLabel;
+  if(plb.bucket==="__overview"){
+    minLabel="Min total plays";
+    const M={freq:["Freq",r=>r.freq,fp,null],plays_pg:["Plays/G",r=>r.plays_pg,f1,null],ppg:["Pts/G",r=>r.ppg,f1,null],ppp:["PPP",r=>r.ppp,f3,"eff"],freq_pctile:["Freq %ile",r=>r.freq_pctile,f0,"freq"],ppp_pctile:["Eff. %ile",r=>r.ppp_pctile,f0,"eff"],tov_rate:["TOV%",r=>r.tov_rate,fp,null]};
+    const [mLab,mGet,mFmt,mShade]=M[plb.metric]||M.freq;
+    const rows=PLAYERS.filter(p=>pass(p)&&p.plays>=plb.min);
+    const cell=(p,b)=>{const r=getRow(p.rows,b); const v=r?mGet(r):null; const t=r?`<b>${esc(p.player)} · ${esc(b)}</b>${f1(r.plays_pg)} plays/G · ${f1(r.ppg)} pts/G<br>Freq ${fp(r.freq)} (%ile ${f0(r.freq_pctile)})<br>PPP ${f3(r.ppp)} (eff. %ile ${f0(r.ppp_pctile)})<br>TOV ${fp(r.tov_rate)}`:"";
+      if(!isNum(v)) return `<td>—</td>`;
+      const shade = mShade==="eff"? pctStyle(plb.metric==="ppp"?r.ppp_pctile:v,"eff") : mShade==="freq"? pctStyle(v,"freq"):"";
+      return `<td data-tip="${esc(t)}"><span class="pc" style="${shade}">${mFmt(v)}</span></td>`;};
+    const cols=[nameCell,teamCell,confCell,roleCell,{k:"games",label:"G",fmt:p=>td(f0(p.games)),val:p=>p.games},{k:"plays_pg",label:"Plays/G",fmt:p=>td(f1(p.plays_pg)),val:p=>p.plays_pg},{k:"ppg",label:"Pts/G",fmt:p=>td(f1(p.ppg)),val:p=>p.ppg},{k:"ppp",label:"PPP",fmt:p=>td(f3(p.ppp)),val:p=>p.ppp},
+      ...ALLB.filter(b=>b!=="Other").map((b,i)=>({k:"m_"+b,label:SHORT[b],cls:i===0?"bl":"",title:b+": "+mLab,fmt:p=>cell(p,b).replace("<td",i===0?'<td class="bl"':"<td"),val:p=>{const r=getRow(p.rows,b); return r?mGet(r):null;}}))];
+    body=`<div class="controls"><label>Show for each play type<select id="metSel">${Object.entries(M).map(([k,v])=>`<option value="${k}" ${plb.metric===k?"selected":""}>${v[0]}</option>`).join("")}</select></label></div>`+pagedTable(id+"_"+plb.metric,cols,rows,{sortK:"plays_pg",dir:-1,maxH:"70vh"})+`<p class="note">Hover any cell for that play type's full line. Pick a single play type above for every stat in its own sortable columns.</p>`;
+  } else if(plb.bucket==="__sc"){
+    minLabel="Min SC plays";
+    const rows=PLAYERS.filter(p=>p.sc&&pass(p)&&p.sc.sc_plays>=plb.min).map(p=>({...p.sc,team:p.team,player:p.player,role:p.role}));
+    const cols=[nameCell,teamCell,confCell,roleCell,{k:"games",label:"G",fmt:r=>td(f0(r.games)),val:r=>r.games},
+      {k:"sc_plays",label:"SC plays",fmt:r=>td(f1(r.sc_plays)),val:r=>r.sc_plays},{k:"sc_points",label:"SC pts",fmt:r=>td(f1(r.sc_points)),val:r=>r.sc_points},
+      {k:"sc_assists",label:"SC ast",fmt:r=>td(f0(r.sc_assists)),val:r=>r.sc_assists},{k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},
+      {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},{k:"sc_tov",label:"SC TOV",fmt:r=>td(f1(r.sc_tov)),val:r=>r.sc_tov},
+      {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},{k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
+      {k:"shortroll_assists",label:"Short-roll ast",fmt:r=>td(f0(r.shortroll_assists)),val:r=>r.shortroll_assists},{k:"postup_assists",label:"Post-up ast",fmt:r=>td(f0(r.postup_assists)),val:r=>r.postup_assists},
+      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists}];
+    body=pagedTable(id,cols,rows,{sortK:"sc_ast_pg",dir:-1,maxH:"70vh"});
+  } else {
+    minLabel="Min plays in bucket";
+    const rows=PLAYERS.filter(pass).map(p=>{const r=getRow(p.rows,plb.bucket,plb.sub); return r?{...r,team:p.team,player:p.player,role:p.role}:null;}).filter(r=>r&&r.plays>=plb.min);
+    const cols=[nameCell,teamCell,confCell,roleCell,...statCols({})];
+    body=pagedTable(id,cols,rows,{sortK:"ppp",dir:-1,maxH:"70vh"})+`<p class="note">Percentiles rank against D-I players with 10+ plays in the bucket; sub-bucket rows have no percentile.</p>`;
+  }
+  const tabs=[...ALLB.filter(b=>b!=="Other").map(b=>[b,SHORT[b]]),["__sc","SC passing"],["__overview","All play types"]];
+  app.innerHTML=`<h1>Player leaderboard</h1><p class="sub">Every D-I player. Pick a play type for its full line (plays, points, frequency and efficiency percentiles vs. D-I, TOV%). Click any column header to sort.</p>
+  <div class="controls"><div class="seg" id="bTabs" style="flex-wrap:wrap">${tabs.map(([v,l])=>`<button data-b="${esc(v)}" class="${plb.bucket===v?"on":""}">${esc(l)}</button>`).join("")}</div></div>
+  <div class="controls">
+   ${subs.length?`<label>Sub-bucket<select id="sSel">${["All",...subs].map(s=>`<option ${plb.sub===s?"selected":""}>${s}</option>`).join("")}</select></label>`:""}
+   <label>Conference<select id="cSel">${confOptions(plb.conf)}</select></label>
+   <label>Team<select id="tSel"><option value="">All teams</option>${plb.conf?(TEAMS_BY_CONF[plb.conf]||[]).map(t=>`<option value="${esc(t)}" ${plb.team===t?"selected":""}>${esc(shortTeam(t))}</option>`).join(""):teamOptions(plb.team)}</select></label>
+   <label>Role<select id="rSel"><option value="">All roles</option>${ROLES.map(r=>`<option ${plb.role===r?"selected":""}>${r}</option>`).join("")}</select></label>
+   <label>${minLabel}<input id="mIn" type="number" min="0" step="1" value="${plb.min}" style="width:90px"></label>
+   <label>Search<input id="qIn" type="search" value="${esc(plb.q)}" placeholder="Player name"></label>
+  </div><div class="card">${body}</div>`;
+  const bind=(id,f)=>{const el=document.getElementById(id); if(el) el.onchange=e=>{f(e.target.value); plb.page=0; pagePlayerLB();};};
+  document.querySelectorAll("#bTabs button").forEach(b=>b.onclick=()=>{plb.bucket=b.dataset.b; plb.sub="All"; plb.page=0; pagePlayerLB();});
+  bind("metSel",v=>plb.metric=v); bind("sSel",v=>plb.sub=v); bind("cSel",v=>{plb.conf=v; plb.team="";}); bind("tSel",v=>plb.team=v); bind("rSel",v=>plb.role=v);
+  bind("mIn",v=>plb.min=+v||0);
+  app.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{ plb.page=+b.dataset.pg; pagePlayerLB(); const t=app.querySelector(".card .tw"); if(t){ t.scrollTop=0; t.scrollIntoView({block:"nearest"}); } });
+  const q=document.getElementById("qIn"); q.oninput=e=>{plb.q=e.target.value; plb.page=0; clearTimeout(qt); qt=setTimeout(()=>{ pagePlayerLB(); const n=document.getElementById("qIn"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); },180); };
+  wireSort(plb.bucket==="__overview"? id+"_"+plb.metric : id, ()=>{ plb.page=0; pagePlayerLB(); });
+}
+
+// ---------------------------------------------------------------- glossary
+function pageGlossary(){
+  const G=(t,d)=>`<dt>${t}</dt><dd>${d}</dd>`;
+  app.innerHTML=`<h1>Glossary</h1><p class="sub">How every number in this dashboard is defined, and where the model can be wrong.</p>
+  <div class="grid g2">
+  <div class="card gl"><h2>Stats</h2><dl>
+   ${G("Play","A possession-ending action, Synergy-style: a field-goal attempt, a turnover, or a free-throw trip. And-one free throws are added to the shot's points. Technical free throws are excluded. An offensive rebound starts a new play.")}
+   ${G("Plays / Plays per game (Plays/G)","Number of plays in the bucket, total and per game. Counts can have decimals because missed shots and free-throw trips are split fractionally between buckets (see Limits).")}
+   ${G("Points (Pts) / Points per game (Pts/G)","Points scored on those plays, total and per game. Team totals reconcile to actual scoring within about 0.5 points per game (technical FTs only).")}
+   ${G("Frequency (Freq)","Bucket plays ÷ all of the team's (or player's) plays, including Transition, Putbacks and Other, so the buckets add to 100%.")}
+   ${G("Half-court frequency (HC Freq)","The same share, counting only half-court plays (Transition and Putbacks removed).")}
+   ${G("PPP","Points per play: points ÷ plays.")}
+   ${G("TOV%","Share of the bucket's plays that ended in a turnover.")}
+   ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. It describes style, not quality, so it is shaded in a single blue scale.")}
+   ${G("Eff. %ile (PPP %ile)","Efficiency percentile: percentile of PPP among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = most efficient. Shaded blue above the median and red below.")}
+   ${G("Defense","Team defense tables describe what opponents did against the team. PPP allowed = opponent points per play. PPP %ile on defense: 100 = fewest points allowed per play. Freq %ile on defense: 100 = opponents run that play type most often against them.")}
+   ${G("D-I average","Average across all D-I teams: frequency is the mean team frequency; PPP is total points ÷ total plays across D-I.")}
+   ${G("Conf. / D-I PPP rank","On a player page, the player's rank in PPP among players in his conference, and among all D-I players, with 10+ plays in that bucket.")}
+   ${G("Conference filters","The team and player leaderboards can be narrowed to one conference. Percentiles still rank against all of D-I. A conference average row (mean of its teams' frequencies; PPP pooled across its teams) is pinned on single-bucket team views.")}
+   ${G("Conferences","ESPN's 2026-27 conference alignment, as listed on each team's game data.")}
+   ${G("Primary type","The half-court bucket (of the five main buckets) where the player has his highest frequency.")}
+   ${G("Game by game","On each team page: the same play-type stats for every game (D-I opponents only), on offense or defense. Compare one play type across games with the bar charts and table, or every play type side by side.")}
+   ${G("Games (G)","Games vs. D-I opponents only. Games against non-D-I opponents are dropped.")}
+  </dl></div>
+  <div class="card gl"><h2>Play-type buckets</h2><dl>
+   ${G(`<span class="sw" style="background:${bcol("Self-Creation")}"></span>Self-Creation`,"On-ball creation: pick-and-roll ball handling and isolation together (the data can't separate them). Sub-buckets: <b>Dribble Jumper</b> (pull-ups, step-backs, unassisted jumpers, turnarounds/fadeaways outside post range) and <b>Rim Attack</b> (driving layups and floaters, unassisted layups/dunks by guards and wings, assisted drives by guards/wings as catch-and-attack).")}
+   ${G(`<span class="sw" style="background:${bcol("Rollers")}"></span>Rollers`,"The screener's finish, credited to Bigs and Stretch Bigs. <b>Roll to Rim</b>: assisted (by a guard or wing) layups, dunks, alley-oops, driving layups and floaters by bigs (also picks up dump-offs in the dunker spot). <b>Pick-and-Pop</b>: assisted 3s by bigs and assisted 2pt jumpers by bigs from 12+ ft. Short-roll passing is tracked as an overlay.")}
+   ${G(`<span class="sw" style="background:${bcol("Off-Ball Cutters")}"></span>Off-Ball Cutters`,"<b>Cut</b>: assisted plain layups, dunks and alley-oops by guards and wings.")}
+   ${G(`<span class="sw" style="background:${bcol("Off-Ball Shooters")}"></span>Off-Ball Shooters`,"<b>Catch-and-Shoot 3</b>: plain 3s by guards and wings assisted by a guard or wing. <b>Big-Assisted C&S 3</b>: plain 3s by guards and wings assisted by a Big or Stretch Big (kick-outs from the post or the short roll; the data can't tell which). The two don't overlap; add them for all catch-and-shoot 3s. <b>Catch-and-Shoot 2</b>: assisted plain 2pt jumpers by guards and wings.")}
+   ${G(`<span class="sw" style="background:${bcol("Post-Ups")}"></span>Post-Ups`,"<b>Post-Up Scoring</b>: hooks; turnarounds within 12 ft (17 ft for bigs); unassisted plain layups/dunks by bigs; unassisted 2pt jumpers by bigs within 10 ft. <b>High-Low</b>: a plain layup, dunk or alley-oop by a Big or Stretch Big, assisted by another Big or Stretch Big (big-to-big at the rim; these would otherwise be Roll to Rim). High-Low plays are credited to the finishing big; the passer gets High-Low Passing.")}
+   ${G("Turnovers (sub-row)","Every bucket has a Turnovers sub-row. Turnovers are allocated by the player's own play mix; On-Ball Guard turnovers all go to Self-Creation; offensive fouls by bigs go to Rollers (moving screens).")}
+   ${G(`<span class="sw" style="background:${bcol("Transition")}"></span>Transition`,"Any play within 8 seconds of a live-ball defensive rebound or a steal. Kept so frequencies are accurate; use your own numbers for transition analysis.")}
+   ${G(`<span class="sw" style="background:${bcol("Putbacks")}"></span>Putbacks`,"A shot within 4 seconds of the team's own offensive rebound, or any tip-in. Kept so frequencies are accurate.")}
+   ${G(`<span class="sw" style="background:${bcol("Other")}"></span>Other`,"Team turnovers not credited to a player. Listed so the frequencies add to 100%.")}
+  </dl></div>
+  <div class="card gl"><h2>Passing overlays</h2><dl>
+   ${G("Self-Creation Passing","Assists on half-court makes by On-Ball Guard or Wing passers. Counted on top of the shooter's bucket.")}
+   ${G("High-Low Passing","Assists by a Big or Stretch Big to another Big or Stretch Big's plain layup, dunk or alley-oop. The passer's location isn't in the data, so this is every big-to-big finish at the rim, not only passes from the top of the key.")}
+   ${G("Short-Roll Passing","All other assists by Stretch Big passers, and Big passers' assists to any other shot at the rim (e.g. to a cutting guard).")}
+   ${G("Post-Up Passing","Big passers' assists to a 3 or a jumper beyond 10 ft. Low confidence: it can't be told apart from short-roll kick-outs.")}
+   ${G("Missed shots in High-Low and Big-Assisted C&S 3","Misses never list a passer. A missed shot's assisted share is split using the shooter's own share of those makes that came from big passers, shrunk toward his role's average (same method as the catch-and-shoot split). That is why these counts have decimals.")}
+   ${G("SC assist rate","Self-Creation assists ÷ (Self-Creation plays + Self-Creation assists).")}
+   ${G("SC turnover rate","Self-Creation turnovers ÷ (Self-Creation plays + Self-Creation assists). Its team percentile is oriented so 100 is good: on offense 100 = fewest turnovers, on defense 100 = forces the most.")}
+   ${G("SC PPP incl. passing","Self-Creation points plus points from Self-Creation assists, per Self-Creation play-or-assist. Runs high because missed shots after a pass can't be seen.")}
+   ${G("Short-roll / Post-up ast/G","Short-Roll and Post-Up Passing assists per game.")}
+  </dl></div>
+  <div class="card gl"><h2>Team archetypes</h2><dl>
+   ${G("On-Ball / PnR-heavy","Self-Creation + Rollers frequency.")}
+   ${G("Motion / Off-ball shooting","Off-Ball Shooters frequency.")}
+   ${G("Rim / Interior","Post-Ups (including High-Low) + Off-Ball Cutters frequency.")}
+   ${G("How a team is assigned","Each score is z-scored across D-I and the team gets the archetype with its highest z-score. The %ile next to each score is its D-I percentile.")}
+  </dl>
+  <h2 style="margin-top:18px">Player roles</h2><dl>
+   ${G("On-Ball Guard, Wing, Stretch Big, Big","Every player has one of the four roles. Where it came from is shown on his player page and when you hover the Role cell in the player leaderboard.")}
+   ${G("America East players: Tanner's sheet","America East roles come only from your Google Sheet. None of the uploaded files change them, and the numbers for AE players' roles match the America East dashboard.")}
+   ${G("Everyone else: three files combined","For the rest of D-I, the three uploaded files are combined with the stat model into one call per player:")}
+   ${G("Positional list (about 500 players)","Its 8-way label and height set the role. Pure PG → On-Ball Guard. Scoring PG → On-Ball Guard (6'7\" and up → Wing). Combo G → On-Ball Guard if the ratings file's creator scale is 2.3 or lower, Wing if it is 3.5 or higher; otherwise his stats or a 30%+ Lead Playmaker archetype make him an On-Ball Guard. Wing G → Wing, unless his creator scale is 1.8 or lower, his assist ratio is 25%+, or his archetype mix is 40%+ Lead Playmaker (then On-Ball Guard). Wing F → Wing (6'9\" and up → Big, or Stretch Big if 30%+ of his shots are 3s). Stretch 4 → Stretch Big (Big if under 30% 3PA; Wing at 6'6\" or shorter). PF/C → Big (Stretch Big at 35%+ 3PA on 8+ attempts). C → Big (Stretch Big at 40%+ 3PA on 8+ attempts).")}
+   ${G("Archetype list","Decides the few top-100 players missing from the positional list: a C → Big, an F → Big when 40%+ of his mix is paint/interior archetypes (otherwise Wing), a G → On-Ball Guard when 35%+ is Lead Playmaker + Interior Facilitator (otherwise Wing). It also breaks Combo G and Wing G ties above.")}
+   ${G("Ratings + stats (about 3,000 players)","Players in the player-ratings file but not the lists above start from the stat-inferred role, then the file adjusts it. A player it rates as a guard (position 2.4 or lower) is never a big. Among guards and wings, a strong creator (creator scale 1.8 or lower) is an On-Ball Guard and a strong receiver (4.0 or higher) is a Wing. Big vs. Stretch Big always comes from his 3-point rate, since the file doesn't measure shooting. These cutoffs were calibrated on your AE sheet: stats alone agree with it 74% of the time, stats + ratings 78%.")}
+   ${G("Stat-inferred (about 1,000 players)","Players in none of the files (mostly low-minute players): role inferred from ESPN position, rim/post shot share, offensive rebounds, blocks, 3PA rate, assist ratio, usage and unassisted share.")}
+   ${G("Name matching","The files use different team spellings (\"Michigan St.\", \"Miami (Fla.)\", \"Tennessee-Martin\"). Players were matched on name (accents, punctuation and Jr./II/III ignored) plus team, with nickname fallbacks (Cam/Cameron, Josh/Joshua). 595 of 599 list names and 3,626 of 3,643 ratings-file names matched; most of the rest haven't played a D-I game yet.")}
+  </dl></div>
+  </div>
+  <div class="card gl"><h2>How a shot is classified</h2><h3>Context comes first: Putbacks, then Transition. Otherwise:</h3>
+  <div class="tw"><table><thead><tr><th>Shot</th><th>Assisted</th><th>Shooter role</th><th>Bucket / sub-bucket</th></tr></thead><tbody>
+   ${[["Hook; turnaround ≤12 ft (≤17 ft for bigs)","any","any","Post-Ups"],["Pull-up, step-back, other turnaround/fadeaway","any","any","Self-Creation / Dribble Jumper"],["Driving layup or floater","no","any","Self-Creation / Rim Attack"],["Driving layup or floater","yes","Big / Stretch Big","Rollers / Roll to Rim"],["Driving layup or floater","yes","Guard / Wing","Self-Creation / Rim Attack (catch-and-attack)"],["Plain layup/dunk, alley-oop","yes, by a Big / Stretch Big","Big / Stretch Big","Post-Ups / High-Low"],["Plain layup/dunk, alley-oop","yes, by a guard / wing","Big / Stretch Big","Rollers / Roll to Rim"],["Plain layup/dunk, alley-oop","yes","Guard / Wing","Off-Ball Cutters"],["Plain layup/dunk","no","Big / Stretch Big","Post-Ups"],["Plain layup/dunk","no","Guard / Wing","Self-Creation / Rim Attack"],["Plain 3","yes","Big / Stretch Big","Rollers / Pick-and-Pop"],["Plain 3","yes, by a guard / wing","Guard / Wing","Off-Ball Shooters / Catch-and-Shoot 3"],["Plain 3","yes, by a Big / Stretch Big","Guard / Wing","Off-Ball Shooters / Big-Assisted C&S 3"],["Plain 2pt jumper","yes","Big (12+ ft)","Rollers / Pick-and-Pop"],["Plain 2pt jumper","yes","Guard / Wing","Off-Ball Shooters / Catch-and-Shoot 2"],["Plain 2pt jumper","no","Big ≤10 ft","Post-Ups"],["Any plain jumper","no","other","Self-Creation / Dribble Jumper"]].map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}
+  </tbody></table></div></div>
+  <div class="card gl"><h2>Limits</h2><dl>
+   ${G("No player tracking","hoopR/ESPN college play-by-play never says pick-and-roll, isolation or cut. Play types are inferred from the shot description, shot distance, whether a make was assisted, and the shooter's role. Descriptions like \"driving\" or \"pullup\" depend on the scorekeeper at each arena.")}
+   ${G("Missed shots have no assist","A missed plain 3 could be catch-and-shoot or off the dribble, so misses are split fractionally using the player's assisted rate on makes (shrunk toward the D-I average for his role at low volume). This slightly overstates catch-and-shoot misses.")}
+   ${G("Fouled misses aren't logged as shots","Free-throw trips and turnovers are allocated by the player's own play mix: 2-shot trips by his 2pt mix, 3-shot trips by his 3pt mix.")}
+   ${G("PnR vs. isolation","Can't be separated; both live in Self-Creation.")}
+  </dl></div>`;
+}
+
+// ---------------------------------------------------------------- boot
+document.getElementById("metaLine").textContent = `${D.meta.season_label} · ${D.meta.coverage_short}`;
+document.getElementById("themeBtn").onclick=()=>{
+  const cur=document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+  document.documentElement.setAttribute("data-theme", cur==="dark"?"light":"dark"); for(const k in CSSC) delete CSSC[k]; route();
+};
+route();
+})();
+</script>
+</body>
+</html>
