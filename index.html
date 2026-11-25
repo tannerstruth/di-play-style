@@ -650,169 +650,134 @@ const MU = {teams:TEAMS, options:teamOptions, rows:teamRows, arch:t=>arch[t], ds
 //   MU.teams [names], MU.options(cur) -> <option>/<optgroup> html, MU.rows(side,team) -> records like teamRows(),
 //   MU.arch(team), MU.dsch(team), MU.conf(team), MU.short(team), MU.href(team) -> team-page link or null,
 //   MU.avgRow(side,b,s), MU.defaults [a,b], MU.scope ("D-I" or a label for the percentile pool)
-const MUI = {a:null,b:null,open:{}};
+// Layout: two columns of cards, one per play-type bucket. Left = A's offense vs. B's defense, right = B's offense vs. A's defense.
+// Each row: offense value | offense percentile | stat | defense percentile | defense value.
+const MUI = {a:null,b:null};
 const MU_SET = new Set(MU.teams);
 const MU_BYSLUG = Object.fromEntries(MU.teams.map(t=>[slug(t),t]));
 const muHref = (a,b) => `#matchup/${slug(a)}/${slug(b)}`;
 const muName = t => esc(MU.short(t));
 const muLink = t => { const h=MU.href(t); return h? `<a href="${h}">${muName(t)}</a>` : muName(t); };
+document.head.insertAdjacentHTML("beforeend",`<style>
+.mu-head{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+.mu-team .n{font-size:22px;font-weight:700;line-height:1.2} .mu-team .m{color:var(--ink-3);font-size:12px;margin-top:2px}
+.mu-team .s{font-size:12.5px;color:var(--ink-2);margin-top:6px} .mu-team.r{text-align:right}
+.mu-mid{text-align:center;padding:0 8px} .mu-mid .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.mu-mid .x{display:flex;gap:18px;justify-content:center;margin-top:4px} .mu-mid .x div{font-size:12px;color:var(--ink-2)} .mu-mid .x b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+.mu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.mu-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.mu-card .hd{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:11px 14px}
+.mu-card .hd b{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)} .mu-card .hd span{font-size:12px;color:var(--ink-2);text-align:right}
+table.mu{width:100%;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.mu col.v{width:23%} table.mu col.c{width:12%} table.mu col.s{width:30%}
+table.mu th{position:static;background:var(--surface-2);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:8px 12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.mu th.o{text-align:left} table.mu th.d{text-align:right} table.mu th em{font-style:normal;color:var(--accent)}
+table.mu td{padding:8px 12px;border-top:1px solid var(--border);border-bottom:0;text-align:center;white-space:nowrap}
+table.mu td.o{text-align:left} table.mu td.d{text-align:right} table.mu td.st{color:var(--ink-2);font-size:13px;white-space:normal;line-height:1.25}
+table.mu td.win{font-weight:700;background:rgba(var(--pos),.10)}
+table.mu tr.sub td.st{font-size:12.5px;color:var(--ink-3)} table.mu td small{display:block;font-size:11px;font-weight:400;color:var(--ink-3)} table.mu tr.sub td.o,table.mu tr.sub td.d{font-size:13px}
+table.mu tbody tr:hover td{background:inherit} table.mu tbody tr:hover td.win{background:rgba(var(--pos),.10)}
+.mu-chip{display:inline-block;min-width:36px;padding:2px 7px;border-radius:5px;font-weight:600;font-size:12.5px;text-align:center}
+.mu-key{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink-3);margin-top:12px}
+.mu-key i{display:inline-block;width:22px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+@media (max-width:860px){.mu-grid{grid-template-columns:1fr} .mu-head{grid-template-columns:1fr 1fr} .mu-mid{grid-column:1/-1;order:3}}
+@media (max-width:480px){table.mu .tn{display:none} table.mu td,table.mu th{padding:7px 6px} table.mu col.v{width:22%} table.mu col.c{width:14%} table.mu col.s{width:28%}}
+</style>`);
 function muTot(rows){
   const a=rows.filter(r=>r.sub==="All"); if(!a.length) return {plays:0,pts:0,games:0,ppp:null,plays_pg:null,ppg:null,tov:null};
-  const t=totals(rows); const tv=a.reduce((s,r)=>s+(r.plays||0)*(r.tov_rate||0)/100,0); t.tov=t.plays?100*tv/t.plays:null;
-  const tr=getRow(rows,"Transition"); t.trans=tr?tr.freq:null; return t;
+  const t=totals(rows); const tv=a.reduce((s,r)=>s+(r.plays||0)*(r.tov_rate||0)/100,0); t.tov=t.plays?100*tv/t.plays:null; return t;
 }
-let MU_TOTS=null; // team -> {off,def}; percentiles of overall PPP need every team
+let MU_TOTS=null; // team -> {off,def}; percentiles of the overall numbers need every team
 function muTots(){ if(!MU_TOTS){ MU_TOTS={}; MU.teams.forEach(t=>MU_TOTS[t]={off:muTot(MU.rows("off",t)),def:muTot(MU.rows("def",t))}); } return MU_TOTS; }
-function muPct(team,side,k){ // 100 = best (offense: highest; defense: lowest allowed)
+function muPct(team,side,k,hiGood){ // percentile among all teams; hiGood: a higher value ranks higher
   if(MU.teams.length<60) return null;
   const T=muTots(), v=T[team][side][k]; if(!isNum(v)) return null;
-  const vals=MU.teams.map(t=>T[t][side][k]).filter(isNum); const hi=side==="off";
-  const below=vals.filter(x=>hi? x<v : x>v).length, eq=vals.filter(x=>x===v).length;
-  return 100*(below+0.5*eq)/vals.length;
+  const vals=MU.teams.map(t=>T[t][side][k]).filter(isNum);
+  const below=vals.filter(x=>hiGood? x<v : x>v).length, eq=vals.filter(x=>x===v).length;
+  return Math.round(100*(below+0.5*eq)/vals.length);
 }
-const MU_AVG = (()=>{ // overall D-I averages from the bucket rows
+const MU_AVG = (()=>{ // overall D-I average PPP from the bucket rows
   const rs=ALLB.map(b=>MU.avgRow("off",b)).filter(Boolean); const f=rs.reduce((s,r)=>s+(r.freq||0),0);
-  return {ppp: f? rs.reduce((s,r)=>s+(r.freq||0)*(r.ppp||0),0)/f : null, plays_pg: rs.reduce((s,r)=>s+(r.plays_pg||0),0)||null};
+  return {ppp: f? rs.reduce((s,r)=>s+(r.freq||0)*(r.ppp||0),0)/f : null};
 })();
-const MU_MIN = 10; // plays needed on each side for a row to count as a key edge
-// expected frequency and PPP: offense + defense - D-I average (additive, like a simple log5)
-function muCell(off,def,b,s){
-  const o=getRow(off,b,s)||null, d=getRow(def,b,s)||null, av=MU.avgRow("off",b,s)||{};
-  const aF=isNum(av.freq)?av.freq:0, aP=isNum(av.ppp)?av.ppp:null;
-  const oF=o&&isNum(o.freq)?o.freq:aF, dF=d&&isNum(d.freq)?d.freq:aF;
-  const isTov = s==="Turnovers"||b==="Other";
-  const xF=Math.max(0,oF+dF-aF);
-  let xP=null, edge=null;
-  if(!isTov && aP!=null){
-    const oP=o&&isNum(o.ppp)&&o.plays>=3?o.ppp:aP, dP=d&&isNum(d.ppp)&&d.plays>=3?d.ppp:aP;
-    xP=Math.max(0,oP+dP-aP); edge=xF*(xP-aP); // points per 100 plays vs. a D-I-average matchup
-  }
-  return {b,s:s||"All",o,d,av,xF,xP,edge,isTov,low:!o||!d||(o.plays||0)<MU_MIN||(d.plays||0)<MU_MIN};
+function muChip(p,kind){ // kind "eff": blue = good, red = bad; "freq": volume only
+  if(!isNum(p)) return `<span class="mu-chip" style="color:var(--ink-3)">—</span>`;
+  let st;
+  if(kind==="freq") st=`background:color-mix(in srgb,var(--ink) ${(4+22*p/100).toFixed(1)}%,transparent)`;
+  else { const d=(p-50)/50; st=`background:rgba(${css(d>=0?"--pos":"--neg")},${(0.10+Math.abs(d)*0.55).toFixed(3)})`; }
+  return `<span class="mu-chip" style="${st}">${Math.round(p)}</span>`;
 }
-const MU_CLASH = {
-  "On-Ball / PnR-heavy|Drop":"Drop coverage gives ball handlers pull-ups and mid-range looks, which suits a pick-and-roll-heavy offense. The swing stat is how well the offense makes Dribble Jumpers.",
-  "On-Ball / PnR-heavy|Hedge / Blitz":"The defense's aggressive ball-screen coverage goes straight at the offense's main action. Expect more turnovers from ball handlers and rollers and more kick-outs: watch Self-Creation TOV% and Catch-and-Shoot 3 PPP.",
-  "On-Ball / PnR-heavy|Compact":"The defense walls off the paint, so drives tend to end in kick-outs and off-the-dribble 3s instead of rim attempts. Compare the offense's Rim Attack and Dribble Jumper PPP.",
-  "Motion / Off-ball shooting|Drop":"Drop defenses stay home on shooters and give up pull-ups instead, which takes away the catch-and-shoot looks this offense wants most.",
-  "Motion / Off-ball shooting|Hedge / Blitz":"Two-to-the-ball defenses rotate a lot, and rotations give up catch-and-shoot 3s, which is where this offense lives. Edge to the offense if it moves the ball out of traps.",
-  "Motion / Off-ball shooting|Compact":"The defense packs the paint and concedes 3s over the top, which is exactly what this offense hunts. Edge to the offense if the shots fall.",
-  "Rim / Interior|Drop":"Drop keeps the big near the rim, so post-ups and cuts meet a set defender. The Post-Up and Cutter rows below decide this side of the ball.",
-  "Rim / Interior|Hedge / Blitz":"When the defense's big steps up to the ball, the paint opens behind it for cutters and high-low feeds, but post entries face more pressure.",
-  "Rim / Interior|Compact":"Strength on strength: the defense is built to take away the paint, where this offense scores most. Whoever wins inside likely wins this side of the ball.",
-};
-function muTiles(a){ // tale of the tape for one team
-  const T=muTots()[a], ar=MU.arch(a)||{}, ds=MU.dsch(a), pc=(s,k)=>{const p=muPct(a,s,k); return p==null?"":`<div class="c">${esc(MU.scope)} %ile ${f0(p)}</div><div class="pbar"><i style="width:${p}%"></i></div>`;};
-  return `<div class="tiles">
-    <div class="tile"><div class="l">Offense PPP</div><div class="v">${f3(T.off.ppp)}</div>${pc("off","ppp")}</div>
-    <div class="tile"><div class="l">Defense PPP allowed</div><div class="v">${f3(T.def.ppp)}</div>${pc("def","ppp")}</div>
-    <div class="tile"><div class="l">Plays / game</div><div class="v">${f1(T.off.plays_pg)}</div><div class="c">${T.off.games||0} games · ${fp(T.off.trans)} transition</div></div>
-    <div class="tile"><div class="l">Offense TOV%</div><div class="v">${fp(T.off.tov)}</div><div class="c">Defense forces ${fp(T.def.tov)}</div></div>
-  </div>
-  <div class="tiles">
-    <div class="tile"><div class="l">Offensive archetype</div><div class="v" style="font-size:16px">${esc(ar.archetype||"—")}</div><div class="c">On-ball ${f0(ar.onball_pctile)} · Motion ${f0(ar.motion_pctile)} · Interior ${f0(ar.interior_pctile)} (%ile)</div></div>
-    <div class="tile"><div class="l">Defensive scheme</div><div class="v" style="font-size:16px">${esc(ds?ds.scheme:"—")}</div><div class="c">${ds?`Fit ${f0(ds.fit)}${ds.secondary?` · leans ${esc(ds.secondary)}`:""}`:"Not available"}</div></div>
-  </div>`;
+// one comparison row: o/d = {v (display), p (percentile)}, kind, win ("o"|"d"|null), sub (smaller sub-bucket row)
+function muRow(label,o,d,kind,opts={}){
+  const win=opts.win;
+  return `<tr class="${opts.sub?"sub":""}"><td class="o ${win==="o"?"win":""}">${o.v}</td><td>${o.p===undefined?"":muChip(o.p,kind)}</td><td class="st">${label}</td>
+    <td>${d.p===undefined?"":muChip(d.p,kind)}</td><td class="d ${win==="d"?"win":""}">${d.v}</td></tr>`;
 }
-function muChart(cells,oName,dName){ // per bucket: offense freq bar, defense-allowed freq bar, D-I average tick
-  const rows=cells.filter(c=>c.b!=="Other"); const W=1000, lw=110, rw=210, bh=12, gap=12, top=6;
-  const H=top+rows.length*(2*bh+2+gap); const iw=W-lw-rw-10;
-  const mx=Math.max(5,...rows.map(c=>Math.max(c.o?c.o.freq||0:0,c.d?c.d.freq||0:0,c.av.freq||0)));
-  const X=v=>lw+iw*(v||0)/mx;
-  let s=`<div class="legend"><span><span class="sw" style="background:var(--ink-2)"></span>${oName} offense</span><span><span class="sw" style="background:var(--ink-2);opacity:.4"></span>${dName} defense (allowed)</span><span><svg width="12" height="12"><line x1="6" x2="6" y1="0" y2="12" style="stroke:var(--ink);stroke-width:2"/></svg> D-I average</span></div>`;
-  s+=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Play-type frequency, offense vs. defense allowed">`;
-  rows.forEach((c,i)=>{
-    const y=top+i*(2*bh+2+gap), col=bcol(c.b);
-    const of=c.o?c.o.freq:null, df=c.d?c.d.freq:null;
-    const tt=`<b>${esc(c.b)}</b>${oName} runs it on ${fp(of)} of plays (PPP ${f3(c.o&&c.o.ppp)})<br>${dName} allows it on ${fp(df)} (PPP allowed ${f3(c.d&&c.d.ppp)})<br>D-I average ${fp(c.av.freq)} (PPP ${f3(c.av.ppp)})`;
-    s+=`<text x="${lw-8}" y="${y+bh+4}" text-anchor="end" style="fill:var(--ink)">${esc(SHORT[c.b]||c.b)}</text>`;
-    s+=`<rect x="${lw}" y="${y}" width="${Math.max(X(of)-lw,0.5).toFixed(1)}" height="${bh}" rx="2" style="fill:${col}" data-tip="${esc(tt)}"/>`;
-    s+=`<rect x="${lw}" y="${y+bh+2}" width="${Math.max(X(df)-lw,0.5).toFixed(1)}" height="${bh}" rx="2" style="fill:${col};opacity:.4" data-tip="${esc(tt)}"/>`;
-    if(isNum(c.av.freq)) s+=`<line x1="${X(c.av.freq).toFixed(1)}" x2="${X(c.av.freq).toFixed(1)}" y1="${y-2}" y2="${y+2*bh+4}" style="stroke:var(--ink);stroke-width:2"/>`;
-    s+=`<text x="${W-rw}" y="${y+bh-2}">${fp(of)} · ${f3(c.o&&c.o.ppp)} PPP</text><text x="${W-rw}" y="${y+2*bh}">${fp(df)} · ${f3(c.d&&c.d.ppp)} allowed</text>`;
-  });
-  return s+"</svg>";
+const muWin = (po,pd) => isNum(po)&&isNum(pd)&&po!==pd? (po>pd?"o":"d") : null; // both percentiles are "100 = best" here
+function muCard(title,a,b,body){
+  return `<div class="mu-card"><div class="hd"><b>${title}</b><span>${muName(a)} offense vs. ${muName(b)} defense</span></div>
+   <table class="mu"><colgroup><col class="v"><col class="c"><col class="s"><col class="c"><col class="v"></colgroup>
+   <thead><tr><th class="o"><span class="tn">${muName(a)} </span><em>Off</em></th><th>%ile</th><th>Stat</th><th>%ile</th><th class="d"><span class="tn">${muName(b)} </span><em>Def</em></th></tr></thead>
+   <tbody>${body}</tbody></table></div>`;
 }
-function edgeStyle(e){ if(!isNum(e)) return ""; const a=Math.min(Math.abs(e)/3,1)*0.5; return `background:rgba(${css(e>=0?"--pos":"--neg")},${a.toFixed(3)})`; }
-function muTable(id,cells,off,def){
-  const sg=v=>isNum(v)?(v>0?"+":"")+v.toFixed(1):"—";
-  const row=(c,sub,hasSubs)=>{
-    const o=c.o||{}, d=c.d||{}, op=c.isTov?null:o.ppp_pctile, dp=c.isTov?null:d.ppp_pctile;
-    const lab=sub? esc(c.s) : `${hasSubs?`<span class="toggle">${MUI.open[id+c.b]?"▾":"▸"}</span>`:`<span class="toggle"></span>`}<span class="sw" style="background:${bcol(c.b)}"></span>${esc(c.b)}`;
-    return `<tr class="${sub?"subrow":""}" ${!sub&&hasSubs?`data-mb="${esc(c.b)}" style="cursor:pointer"`:""}><td class="l">${lab}</td>
-      <td class="bl">${fp(o.freq)}</td>${pcell(o.freq_pctile,"freq")}<td>${fp(d.freq)}</td>${pcell(d.freq_pctile,"freq")}<td style="color:var(--ink-3)">${fp(c.av.freq)}</td>
-      <td class="bl">${c.isTov?fp(o.tov_rate):f3(o.ppp)}</td>${pcell(op,"eff")}<td>${c.isTov?fp(d.tov_rate):f3(d.ppp)}</td>${pcell(dp,"eff")}<td style="color:var(--ink-3)">${c.isTov?"":f3(c.av.ppp)}</td>
-      <td class="bl">${fp(c.xF)}</td><td>${f3(c.xP)}</td><td><span class="pc" style="${edgeStyle(c.edge)}" title="${c.low?"Small sample on at least one side":""}">${sg(c.edge)}${c.low&&isNum(c.edge)?"*":""}</span></td></tr>`;
-  };
-  let h=`<div class="tw"><table id="${id}"><thead><tr><th class="l" rowspan="2">Play type</th><th class="grp" colspan="5">Frequency</th><th class="grp" colspan="5">PPP (TOV% on turnover rows)</th><th class="grp" colspan="3">Matchup</th></tr>
-   <tr><th class="bl" title="Share of the offense's plays">Off.</th><th title="D-I percentile of how often the offense runs it">%ile</th><th title="Share of opponents' plays against this defense">Def. allowed</th><th title="D-I percentile of how often opponents run it against this defense">%ile</th><th>D-I avg</th>
-   <th class="bl">Off.</th><th title="Offense efficiency percentile (100 = most efficient)">Eff %ile</th><th>Def. allowed</th><th title="Defense efficiency percentile (100 = fewest points allowed)">Eff %ile</th><th>D-I avg</th>
-   <th class="bl" title="Expected share of plays: offense + defense allowed - D-I average">Exp. freq</th><th title="Expected PPP: offense PPP + PPP allowed - D-I average">Exp. PPP</th><th title="Points per 100 plays for the offense vs. an average D-I matchup, from this play type: Exp. freq x (Exp. PPP - D-I avg PPP). * = under ${MU_MIN} plays on one side">Edge</th></tr></thead><tbody>`;
-  for(const c of cells){
-    const subs=(SUBS[c.b]||[]); h+=row(c,false,subs.length>0);
-    if(MUI.open[id+c.b]) subs.forEach(s=>{ h+=row(muCell(off,def,c.b,s),true,false); });
-  }
-  return h+`</tbody></table></div>`;
-}
-function muEdges(cells,off,def){ // largest bucket and sub-bucket edges with enough plays on both sides
-  const all=[];
-  cells.forEach(c=>{ if(c.b==="Other"||c.b==="Transition"||c.b==="Putbacks") return; all.push(c); (SUBS[c.b]||[]).forEach(s=>{ if(s!=="Turnovers") all.push(muCell(off,def,c.b,s)); }); });
-  const ok=all.filter(c=>!c.low&&isNum(c.edge)&&(c.s==="All"||c.xF>=3));
-  const pos=ok.filter(c=>c.edge>0.3).sort((x,y)=>y.edge-x.edge).slice(0,3), neg=ok.filter(c=>c.edge<-0.3).sort((x,y)=>x.edge-y.edge).slice(0,3);
-  return {pos,neg};
-}
-function muEdgeLine(c,oN,dN,good){
-  const nm=c.s==="All"?c.b:`${c.b}: ${c.s}`;
-  return `<li><b>${esc(nm)}</b> <span class="pc" style="${edgeStyle(c.edge)}">${(c.edge>0?"+":"")+c.edge.toFixed(1)}</span> &nbsp;${oN} ${f3(c.o.ppp)} PPP (%ile ${f0(c.o.ppp_pctile)}) on ${fp(c.o.freq)} of plays; ${dN} allows ${f3(c.d.ppp)} (%ile ${f0(c.d.ppp_pctile)}) and sees it on ${fp(c.d.freq)}.</li>`;
-}
-function muSide(id,a,b){ // a's offense vs b's defense
-  const off=MU.rows("off",a), def=MU.rows("def",b), oN=muName(a), dN=muName(b);
-  const cells=ALLB.map(x=>muCell(off,def,x));
+function muOverall(a,b){
   const To=muTots()[a].off, Td=muTots()[b].def;
-  const xP=isNum(To.ppp)&&isNum(Td.ppp)&&isNum(MU_AVG.ppp)? To.ppp+Td.ppp-MU_AVG.ppp : null;
-  const xPl=isNum(To.plays_pg)&&isNum(Td.plays_pg)&&isNum(MU_AVG.plays_pg)? To.plays_pg+Td.plays_pg-MU_AVG.plays_pg : null;
-  const ar=MU.arch(a)||{}, ds=MU.dsch(b), note=ds&&MU_CLASH[ar.archetype+"|"+ds.scheme];
-  const E=muEdges(cells,off,def);
-  const list=(arr,empty)=>arr.length?`<ul style="margin:6px 0 0;padding-left:18px">${arr.map(c=>muEdgeLine(c,oN,dN)).join("")}</ul>`:`<p class="note">${empty}</p>`;
-  return `<div class="card"><h2>${oN} offense vs. ${dN} defense</h2>
-   <h3>${esc(ar.archetype||"No archetype")} offense against a ${esc(ds?ds.scheme:"unlabeled")} defense${ds&&ds.secondary?` with ${esc(ds.secondary)} traits`:""}</h3>
-   <div class="tiles">
-    <div class="tile"><div class="l">${oN} offense PPP</div><div class="v">${f3(To.ppp)}</div><div class="c">${f1(To.plays_pg)} plays/G</div></div>
-    <div class="tile"><div class="l">${dN} PPP allowed</div><div class="v">${f3(Td.ppp)}</div><div class="c">${f1(Td.plays_pg)} opp. plays/G</div></div>
-    <div class="tile"><div class="l">Expected PPP</div><div class="v">${f3(xP)}</div><div class="c">D-I average ${f3(MU_AVG.ppp)}</div></div>
-    <div class="tile"><div class="l">Expected points</div><div class="v">${isNum(xP)&&isNum(xPl)?f1(xP*xPl):"—"}</div><div class="c">on ~${f0(xPl)} plays (rough)</div></div>
-   </div>
-   ${note?`<p class="sub"><b>Style clash.</b> ${esc(note)}</p>`:""}
-   <div class="grid g2">
-    <div><h3>Where ${oN} should score</h3>${list(E.pos,"No play type stands out for the offense (needs "+MU_MIN+"+ plays on both sides).")}</div>
-    <div><h3>Where ${dN} should hold up</h3>${list(E.neg,"No play type stands out for the defense (needs "+MU_MIN+"+ plays on both sides).")}</div>
-   </div>
-   <h3 style="margin-top:14px">Play mix: what ${oN} runs vs. what ${dN} allows</h3>${muChart(cells,oN,dN)}
-   <h3 style="margin-top:14px">By play type</h3>${muTable(id,cells,off,def)}
-   <p class="note">Edge = points per 100 plays for the offense compared with an average D-I matchup, from that play type alone (blue favors the offense, red the defense). Expected values add the offense's and the defense's numbers and subtract the D-I average. Click a row to open sub-buckets. Hover the bars for details.</p></div>`;
+  const po=muPct(a,"off","ppp",true), pd=muPct(b,"def","ppp",false);
+  const to=muPct(a,"off","tov",false), tdp=muPct(b,"def","tov",true);
+  return muCard("Overall",a,b,
+    muRow("Points per play",{v:f3(To.ppp),p:po},{v:f3(Td.ppp),p:pd},"eff",{win:muWin(po,pd)})+
+    muRow("Turnover rate",{v:fp(To.tov),p:to},{v:fp(Td.tov),p:tdp},"eff",{win:muWin(to,tdp)})+
+    muRow("Plays per game",{v:f1(To.plays_pg),p:muPct(a,"off","plays_pg",true)},{v:f1(Td.plays_pg),p:muPct(b,"def","plays_pg",true)},"freq"));
 }
+function muBucket(b0,a,b){
+  const off=MU.rows("off",a), def=MU.rows("def",b), o=getRow(off,b0)||{}, d=getRow(def,b0)||{};
+  let h=muRow("Frequency",{v:fp(o.freq),p:o.freq_pctile},{v:fp(d.freq),p:d.freq_pctile},"freq")+
+        muRow("PPP",{v:f3(o.ppp),p:o.ppp_pctile},{v:f3(d.ppp),p:d.ppp_pctile},"eff",{win:muWin(o.ppp_pctile,d.ppp_pctile)});
+  if((SUBS[b0]||[]).length) h+=muRow("Turnover rate",{v:fp(o.tov_rate)},{v:fp(d.tov_rate)},"eff");
+  (SUBS[b0]||[]).filter(s=>s!=="Turnovers").forEach(s=>{
+    const so=getRow(off,b0,s)||{}, sd=getRow(def,b0,s)||{};
+    const fq=v=>`<small>${fp(v)} of plays</small>`;
+    h+=muRow(`${esc(s)} PPP`,{v:f3(so.ppp)+fq(so.freq),p:so.ppp_pctile},{v:f3(sd.ppp)+fq(sd.freq),p:sd.ppp_pctile},"eff",{win:muWin(so.ppp_pctile,sd.ppp_pctile),sub:true});
+  });
+  return muCard(esc(b0),a,b,h);
+}
+function muContext(a,b){
+  const off=MU.rows("off",a), def=MU.rows("def",b); let h="";
+  ["Transition","Putbacks"].forEach(b0=>{ const o=getRow(off,b0)||{}, d=getRow(def,b0)||{};
+    h+=muRow(`${b0} freq`,{v:fp(o.freq),p:o.freq_pctile},{v:fp(d.freq),p:d.freq_pctile},"freq")+
+       muRow(`${b0} PPP`,{v:f3(o.ppp),p:o.ppp_pctile},{v:f3(d.ppp),p:d.ppp_pctile},"eff",{win:muWin(o.ppp_pctile,d.ppp_pctile)}); });
+  return muCard("Transition &amp; putbacks",a,b,h);
+}
+function muTeamHead(t,right){
+  const ar=MU.arch(t)||{}, ds=MU.dsch(t), T=muTots()[t];
+  return `<div class="mu-team ${right?"r":""}"><div class="n">${muLink(t)}</div><div class="m">${esc(MU.conf(t))} · ${T.off.games||0} games</div>
+   <div class="s">Offense: <b>${esc(ar.archetype||"—")}</b>${ar.archetype?` <span style="color:var(--ink-3)">(on-ball ${f0(ar.onball_pctile)} · motion ${f0(ar.motion_pctile)} · interior ${f0(ar.interior_pctile)})</span>`:""}</div>
+   <div class="s">Defense: <b>${esc(ds?ds.scheme:"—")}</b>${ds?` <span style="color:var(--ink-3)">(fit ${f0(ds.fit)}${ds.secondary?`, leans ${esc(ds.secondary)}`:""})</span>`:""}</div></div>`;
+}
+function muExp(a,b){ const To=muTots()[a].off, Td=muTots()[b].def; return isNum(To.ppp)&&isNum(Td.ppp)&&isNum(MU_AVG.ppp)? To.ppp+Td.ppp-MU_AVG.ppp : null; }
 function pageMatchup(h){
   const p=String(h||"").split("/"); let a=MU_BYSLUG[p[1]]||MUI.a||MU.defaults[0], b=MU_BYSLUG[p[2]]||MUI.b||MU.defaults[1];
   if(!MU_SET.has(a)) a=MU.teams[0]; if(!MU_SET.has(b)) b=MU.teams.find(t=>t!==a)||a;
   MUI.a=a; MUI.b=b;
   const go=(na,nb)=>{ MUI.a=na; MUI.b=nb; const nh=muHref(na,nb); try{ history.replaceState(null,"",nh); }catch(e){} const wy=window.scrollY; pageMatchup(nh.slice(1)); window.scrollTo(window.scrollX,wy); };
-  const ta=muTots()[a], tb=muTots()[b];
+  const cards=[];
+  const pair=f=>{ cards.push(f(a,b)); cards.push(f(b,a)); };
+  pair(muOverall); BUCKETS.forEach(b0=>pair((x,y)=>muBucket(b0,x,y))); pair(muContext);
   app.innerHTML=`<div class="controls"><label>Team A<select id="muA">${MU.options(a)}</select></label>
-    <button class="theme" id="muSwap" title="Swap teams" style="padding:6px 12px">⇄ Swap</button>
+    <button class="theme" id="muSwap" title="Swap teams" style="padding:6px 12px">⇄</button>
     <label>Team B<select id="muB">${MU.options(b)}</select></label></div>
-  <h1>${muLink(a)} vs. ${muLink(b)}</h1>
-  <p class="sub">Each team's offense against the other's defense: how often each play type is run and allowed, how efficiently, and where the edges are. Games ${esc(D.meta.coverage_short||"")}. Percentiles rank against all of D-I.</p>
-  <div class="grid g2">
-    <div class="card"><h2>${muLink(a)}</h2><h3>${esc(MU.conf(a))} · ${ta.off.games||0} games</h3>${muTiles(a)}</div>
-    <div class="card"><h2>${muLink(b)}</h2><h3>${esc(MU.conf(b))} · ${tb.off.games||0} games</h3>${muTiles(b)}</div>
-  </div>
-  ${muSide("muAB",a,b)}
-  ${muSide("muBA",b,a)}
-  <p class="note">Rough model: additive expected values, no home-court or tempo adjustment, and early-season samples are small. Schemes are inferred from outcomes (see the Glossary).</p>`;
+  <div class="card"><div class="mu-head">${muTeamHead(a,false)}
+    <div class="mu-mid"><div class="l">Expected PPP</div><div class="x"><div><b>${f3(muExp(a,b))}</b>${muName(a)} offense</div><div><b>${f3(muExp(b,a))}</b>${muName(b)} offense</div></div><div class="m" style="font-size:11px;color:var(--ink-3);margin-top:4px">D-I average ${f3(MU_AVG.ppp)}</div></div>
+    ${muTeamHead(b,true)}</div>
+   <div class="mu-key"><span><i style="background:linear-gradient(90deg,rgba(${css("--neg")},.6),rgba(${css("--pos")},.1),rgba(${css("--pos")},.65))"></i>PPP / turnover %ile: 100 = best in ${esc(MU.scope)} (offense scores most, defense allows least)</span>
+    <span><i style="background:linear-gradient(90deg,color-mix(in srgb,var(--ink) 4%,transparent),color-mix(in srgb,var(--ink) 26%,transparent))"></i>Frequency %ile: 100 = runs it (or sees it) most often</span>
+    <span><b style="color:var(--ink-2)">Bold</b> = the side with the better percentile</span>
+    <span>Sub-bucket rows show PPP, with how often each side runs or sees it underneath</span></div></div>
+  <div class="mu-grid">${cards.join("")}</div>
+  <p class="note">Games ${esc(D.meta.coverage_short||"")}. Expected PPP = offense PPP + defense PPP allowed − D-I average. Schemes are inferred from outcomes; see the Glossary.</p>`;
   document.getElementById("muA").onchange=e=>go(e.target.value,b);
   document.getElementById("muB").onchange=e=>go(a,e.target.value);
   document.getElementById("muSwap").onclick=()=>go(b,a);
-  ["muAB","muBA"].forEach(id=>{ const t=document.getElementById(id); if(!t) return;
-    t.querySelectorAll("tr[data-mb]").forEach(tr=>tr.onclick=()=>{ const k=id+tr.dataset.mb; MUI.open[k]=!MUI.open[k]; go(a,b); }); });
 }
 // ---------------------------------------------------------------- end matchup page
 // <</MATCHUP>>
@@ -1057,12 +1022,11 @@ function pageGlossary(){
    ${G("Known blind spots","A no-middle or trapping defense that also piles up steals reads as Hedge / Blitz: Ole Miss, a no-middle anchor, forces live-ball turnovers at one of the highest rates in D-I and lands Hedge / Blitz as of late November. Houston protects the rim like a Compact team, so it sits close to the line with Compact as its secondary. Pack-line teams that concede contested mid-range jumpers but few 3s can read as Drop. Switching defenses have no bucket of their own and land wherever their outcomes point. Scorekeeping differences (what gets called a driving layup vs. a layup) move the Self-Creation and rim numbers a little.")}
   </dl></div>
   <div class="card gl"><h2>Matchup page</h2><dl><!--MATCHUP-GLOSS-->
-   ${G("What it shows","Pick any two teams. Each half of the page puts one team's offense against the other's defense: how often each play type is run (offense) and allowed (defense), how efficiently, the D-I average, and the offensive archetype against the defensive scheme.")}
-   ${G("Expected freq / Expected PPP","Offense value + defense-allowed value − D-I average. A simple additive estimate (like log5) that assumes the two effects stack; it doesn't account for home court, tempo or who is injured.")}
-   ${G("Edge","Expected freq × (Expected PPP − D-I average PPP), in points per 100 plays. It is how much that play type should help (+, blue) or hurt (−, red) the offense compared with an average D-I matchup. Marked * when either side has under 10 plays in it.")}
-   ${G("Where they should score / hold up","The three largest positive and negative edges among the half-court buckets and their sub-buckets, counting only play types with 10+ plays on both sides.")}
-   ${G("Expected PPP and points (tiles)","Overall offense PPP + defense PPP allowed − D-I average PPP, and that times the expected plays (offense plays/G + opponent plays/G allowed − D-I average). Plays include offensive-rebound putbacks, so this is not a possession count. A rough guide, not a prediction.")}
-   ${G("Style clash","A general note on how the offense's archetype tends to fare against the defense's inferred scheme. It describes typical tendencies, not a scouting report.")}
+   ${G("What it shows","Pick any two teams. The left column puts Team A's offense against Team B's defense, the right column the reverse. Each card is one play-type bucket: the offense's number and D-I percentile on the left, the defense's on the right.")}
+   ${G("Percentile chips","PPP and turnover-rate percentiles are oriented so 100 is best for that side: the offense scores the most per play (or turns it over least), the defense allows the fewest points (or forces the most turnovers). Blue = above the D-I median, red = below. Frequency percentiles are style only: 100 = the offense runs it most, or opponents run it most against that defense.")}
+   ${G("Bold value","The side with the better percentile on that row, i.e. who should win that part of the matchup.")}
+   ${G("Sub-bucket rows","PPP for each sub-bucket, with the share of plays it makes up for the offense (and for the defense's opponents) under each value. Frequency chips are grey because volume is style, not good or bad.")}
+   ${G("Expected PPP","Offense PPP + defense PPP allowed − D-I average PPP. A simple additive estimate with no home-court or tempo adjustment.")}
   </dl></div>
   <div class="card gl"><h2>Team archetypes</h2><dl>
    ${G("On-Ball / PnR-heavy","Self-Creation + Rollers frequency.")}
