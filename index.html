@@ -334,7 +334,7 @@ function statCols(opts={}){ // opts.def: defense, opts.noPct
     {k:"points",label:"Pts",fmt:r=>td(f1(r.points)),val:r=>r.points},
     {k:"ppg",label:"Pts/G",fmt:r=>td(f1(r.ppg)),val:r=>r.ppg},
     {k:"freq",label:"Freq",cls:"bl",fmt:r=>td(fp(r.freq),"bl"),val:r=>r.freq,title:"Share of all plays"},
-    {k:"freq_pctile",label:"Freq %ile",fmt:r=>pcell(r.freq_pctile,"freq"),val:r=>r.freq_pctile,title:freqTitle},
+    {k:"freq_pctile",label:"Freq %ile",fmt:r=>pcell(r.freq_pctile,(r.sub==="Turnovers"||r.bucket==="Other")?"eff":"freq"),val:r=>r.freq_pctile,title:freqTitle},
     {k:"freq_halfcourt",label:"HC Freq",fmt:r=>td(fp(r.freq_halfcourt)),val:r=>r.freq_halfcourt,title:"Share of half-court plays only"},
     {k:"ppp",label:opts.def?"PPP allowed":"PPP",cls:"bl",fmt:r=>td(f3(r.ppp),"bl"),val:r=>r.ppp},
     {k:"ppp_pctile",label:opts.def?"Eff. %ile":"Eff. %ile",fmt:r=>pcell(pp(r),"eff"),val:r=>pp(r),title:effTitle},
@@ -971,7 +971,7 @@ function pageGlossary(){
    ${G("Half-court frequency (HC Freq)","The same share, counting only half-court plays (Transition and Putbacks removed).")}
    ${G("PPP","Points per play: points ÷ plays.")}
    ${G("TOV%","Share of the bucket's plays that ended in a turnover.")}
-   ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. It describes style, not quality, so it is shaded in a single blue scale.")}
+   ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. It describes style, not quality, so it is shaded in a single blue scale. Exception, turnover rows (each bucket's Turnovers sub-row and Other): on offense 100 = turns it over least often, on defense 100 = forces turnovers most often, and both are shaded blue (good) to red (bad) like efficiency.")}
    ${G("Eff. %ile (PPP %ile)","Efficiency percentile: percentile of PPP among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = most efficient. Shaded blue above the median and red below.")}
    ${G("Defense","Team defense tables describe what opponents did against the team. PPP allowed = opponent points per play. PPP %ile on defense: 100 = fewest points allowed per play. Freq %ile on defense: 100 = opponents run that play type most often against them.")}
    ${G("D-I average","Average across all D-I teams: frequency is the mean team frequency; PPP is total points ÷ total plays across D-I.")}
