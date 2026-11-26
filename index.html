@@ -340,7 +340,7 @@ function statCols(opts={}){ // opts.def: defense, opts.noPct
     {k:"freq_halfcourt",label:"HC Freq",fmt:r=>td(fp(r.freq_halfcourt)),val:r=>r.freq_halfcourt,title:"Share of half-court plays only"},
     {k:"ppp",label:opts.def?"PPP allowed":"PPP",cls:"bl",fmt:r=>td(f3(r.ppp),"bl"),val:r=>r.ppp},
     {k:"ppp_pctile",label:opts.def?"Eff. %ile":"Eff. %ile",fmt:r=>pcell(pp(r),"eff"),val:r=>pp(r),title:effTitle},
-    {k:"tov_rate",label:"TOV%",cls:"bl",fmt:r=>td(fp(r.tov_rate),"bl"),val:r=>r.tov_rate,title:"Share of these plays that ended in a turnover"},
+    {k:"tov_rate",label:"TOV%",cls:"bl",fmt:r=>td((r.sub!=="All"&&r.sub!=="Turnovers"&&r.bucket!=="Other"&&!r.tov_rate)?"—":fp(r.tov_rate),"bl"),val:r=>r.tov_rate,title:"Share of these plays that ended in a turnover"},
     {k:"tov_rate_pctile",label:"TOV %ile",fmt:r=>pcell(r.tov_rate_pctile,"eff"),val:r=>r.tov_rate_pctile,title:opts.def?"D-I percentile of turnover rate forced: 100 = forces the most turnovers":"D-I percentile of turnover rate: 100 = turns it over least often"},
   ];
 }
@@ -563,7 +563,7 @@ function bucketTable(id, rows, opts){ // grouped bucket table with expandable su
   let h=`<div class="tw"><table id="${id}"><thead><tr><th class="l">Play type</th>${cols.map(c=>`<th class="${c.cls||""}" ${c.title?`title="${esc(c.title)}"`:""}>${c.label}</th>`).join("")}</tr></thead><tbody>`;
   for(const b of ALLB){
     const r=getRow(rows,b); if(!r) continue;
-    const subs = (SUBS[b]||[]).map(s=>getRow(rows,b,s)).filter(Boolean);
+    const subs = (SUBS[b]||[]).filter(s=>s!=="Turnovers").map(s=>getRow(rows,b,s)).filter(Boolean); // turnovers live in the parent row's TOV% / TOV %ile
     const isOpen = !!teamUI.open[openKey+b];
     const ctx = CONTEXT.includes(b);
     h+=`<tr class="${ctx?"":"hl"}"><td class="l">${subs.length?`<span class="toggle" data-open="${esc(openKey+b)}">${isOpen?"▾":"▸"}</span>`:`<span class="toggle"></span>`}<span class="sw" style="background:${bcol(b)}"></span>${esc(b)}</td>${cols.map(c=>c.fmt(r)).join("")}</tr>`;
@@ -977,7 +977,7 @@ function pageGlossary(){
    ${G("Half-court frequency (HC Freq)","The same share, counting only half-court plays (Transition and Putbacks removed).")}
    ${G("PPP","Points per play: points ÷ plays.")}
    ${G("TOV%","Share of the bucket's plays that ended in a turnover.")}
-   ${G("TOV %ile","D-I percentile of TOV%, shaded blue when good for that side. Offense: 100 = turns it over least often. Defense: 100 = forces turnovers most often. Players rank against D-I players with 10+ plays in the bucket. Blank on Turnovers rows.")}
+   ${G("TOV %ile","D-I percentile of TOV%, shaded blue when good for that side. Offense: 100 = turns it over least often. Defense: 100 = forces turnovers most often. Players rank against D-I players with 10+ plays in the bucket. Blank on Turnovers rows and on rows that never contain turnovers (shot sub-buckets such as Pull-Up 3 or Rim, and Putbacks).")}
    ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. On offense it describes style, not quality, so it is shaded in a single blue scale. Exception, turnover rows (each bucket's Turnovers sub-row and Other): on offense 100 = turns it over least often, on defense 100 = forces turnovers most often, and both are shaded blue (good) to red (bad) like efficiency. On defense (frequency allowed), the shading follows what is good for the defense, as on the Matchup page: allowing a play type more often is red, allowing it less is blue; the number itself is still 100 = allowed most often.")}
    ${G("Eff. %ile (PPP %ile)","Efficiency percentile: percentile of PPP among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = most efficient. Shaded blue above the median and red below.")}
    ${G("Defense","Team defense tables describe what opponents did against the team. PPP allowed = opponent points per play. PPP %ile on defense: 100 = fewest points allowed per play. Freq %ile on defense: 100 = opponents run that play type most often against them.")}
@@ -995,7 +995,7 @@ function pageGlossary(){
    ${G(`<span class="sw" style="background:${bcol("Off-Ball Cutters")}"></span>Off-Ball Cutters`,"<b>Cut</b>: assisted plain layups, dunks and alley-oops by guards and wings.")}
    ${G(`<span class="sw" style="background:${bcol("Off-Ball Shooters")}"></span>Off-Ball Shooters`,"<b>Catch-and-Shoot 3</b>: assisted plain 3s by guards and wings, passed by a guard or wing. <b>Big-Assisted C&S 3</b>: assisted plain 3s passed by a Big or Stretch Big, whoever shoots (kick-outs from the post or the short roll, and big-to-big 3s), a proxy for inside-out play. <b>Big C&S 3</b>: plain 3s taken by a Big or Stretch Big and passed by a guard or wing, a proxy for pick-and-pop. The three don't overlap; add them for all catch-and-shoot 3s. <b>Catch-and-Shoot 2</b>: assisted plain 2pt jumpers by guards and wings, plus assisted 2pt jumpers by bigs from 12+ ft (pops).")}
    ${G(`<span class="sw" style="background:${bcol("Post-Ups")}"></span>Post-Ups`,"<b>Post-Up Scoring</b>: hooks; turnarounds within 12 ft (17 ft for bigs); unassisted plain layups/dunks by bigs; unassisted 2pt jumpers by bigs within 10 ft. <b>High-Low</b>: a plain layup, dunk or alley-oop by a Big or Stretch Big, assisted by another Big or Stretch Big (big-to-big at the rim; these would otherwise be Roll to Rim). High-Low plays are credited to the finishing big; the passer gets High-Low Passing.")}
-   ${G("Turnovers (sub-row)","Every bucket has a Turnovers sub-row. Turnovers are allocated by the player's own play mix; On-Ball Guard turnovers all go to Self-Creation; offensive fouls by bigs go to Rollers (moving screens).")}
+   ${G("Turnovers","Each bucket's turnovers count in its plays, frequency and TOV% (team and player pages show them in the parent row's TOV% and TOV %ile; the leaderboards still offer a Turnovers sub-bucket). Turnovers are allocated by the player's own play mix; On-Ball Guard turnovers all go to Self-Creation; offensive fouls by bigs go to Rollers (moving screens).")}
    ${G(`<span class="sw" style="background:${bcol("Transition")}"></span>Transition`,"Any play within 8 seconds of a live-ball defensive rebound or a steal. Kept so frequencies are accurate; use your own numbers for transition analysis.")}
    ${G(`<span class="sw" style="background:${bcol("Putbacks")}"></span>Putbacks`,"A shot within 4 seconds of the team's own offensive rebound, or any tip-in. Kept so frequencies are accurate.")}
    ${G(`<span class="sw" style="background:${bcol("Other")}"></span>Other`,"Team turnovers not credited to a player. Listed so the frequencies add to 100%.")}
