@@ -936,7 +936,8 @@ function pagePlayerLB(){
       {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},{k:"sc_tov",label:"SC TOV",fmt:r=>td(f1(r.sc_tov)),val:r=>r.sc_tov},
       {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},{k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_assists",label:"Short-roll ast",fmt:r=>td(f0(r.shortroll_assists)),val:r=>r.shortroll_assists},{k:"postup_assists",label:"Post-up ast",fmt:r=>td(f0(r.postup_assists)),val:r=>r.postup_assists},
-      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists}];
+      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists},
+      {k:"kick_assists",label:"Kick-outs",fmt:r=>td(f0(r.kick_assists)),val:r=>r.kick_assists},{k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg}];
     body=pagedTable(id,cols,rows,{sortK:"sc_ast_pg",dir:-1,maxH:"70vh"});
   } else {
     minLabel="Min plays in bucket";
