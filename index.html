@@ -118,8 +118,8 @@ try{
 // ---------------------------------------------------------------- data inflation (compact JSON -> the AE dashboard's record shapes)
 function inflate(C,PL){
   const T=C.teams.map(([id,name,short,conf])=>({id,name,short,conf}));
-  const rec=(row,name,games)=>{ const [u,bi,plays,points,freq,fhc,ppp,fp,pp,tov]=row; const [bucket,sub]=C.bs[bi];
-    return {team:name,bucket,sub,games,plays,plays_pg:games?plays/games:null,points,ppg:games?points/games:null,freq,freq_halfcourt:fhc,ppp,freq_pctile:fp,ppp_pctile:pp,tov_rate:tov}; };
+  const rec=(row,name,games)=>{ const [u,bi,plays,points,freq,fhc,ppp,fp,pp,tov,tvp]=row; const [bucket,sub]=C.bs[bi];
+    return {team:name,bucket,sub,games,plays,plays_pg:games?plays/games:null,points,ppg:games?points/games:null,freq,freq_halfcourt:fhc,ppp,freq_pctile:fp,ppp_pctile:pp,tov_rate:tov,tov_rate_pctile:tvp}; };
   const tt=rows=>rows.map(r=>rec(r,T[r[0]].name,C.tgames[r[0]]));
   const P=PL.players.map(([id,t,player,role,src,detail,games])=>({id,team:T[t].name,player,role,role_source:src,role_detail:detail,games}));
   const prow=PL.rows.map(r=>{ const p=P[r[0]]; const o=rec(r,p.team,p.games); o.player=p.player; o.role=p.role; o.pid=r[0]; return o; });
@@ -341,6 +341,7 @@ function statCols(opts={}){ // opts.def: defense, opts.noPct
     {k:"ppp",label:opts.def?"PPP allowed":"PPP",cls:"bl",fmt:r=>td(f3(r.ppp),"bl"),val:r=>r.ppp},
     {k:"ppp_pctile",label:opts.def?"Eff. %ile":"Eff. %ile",fmt:r=>pcell(pp(r),"eff"),val:r=>pp(r),title:effTitle},
     {k:"tov_rate",label:"TOV%",cls:"bl",fmt:r=>td(fp(r.tov_rate),"bl"),val:r=>r.tov_rate,title:"Share of these plays that ended in a turnover"},
+    {k:"tov_rate_pctile",label:"TOV %ile",fmt:r=>pcell(r.tov_rate_pctile,"eff"),val:r=>r.tov_rate_pctile,title:opts.def?"D-I percentile of turnover rate forced: 100 = forces the most turnovers":"D-I percentile of turnover rate: 100 = turns it over least often"},
   ];
 }
 
@@ -976,6 +977,7 @@ function pageGlossary(){
    ${G("Half-court frequency (HC Freq)","The same share, counting only half-court plays (Transition and Putbacks removed).")}
    ${G("PPP","Points per play: points ÷ plays.")}
    ${G("TOV%","Share of the bucket's plays that ended in a turnover.")}
+   ${G("TOV %ile","D-I percentile of TOV%, shaded blue when good for that side. Offense: 100 = turns it over least often. Defense: 100 = forces turnovers most often. Players rank against D-I players with 10+ plays in the bucket. Blank on Turnovers rows.")}
    ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. On offense it describes style, not quality, so it is shaded in a single blue scale. Exception, turnover rows (each bucket's Turnovers sub-row and Other): on offense 100 = turns it over least often, on defense 100 = forces turnovers most often, and both are shaded blue (good) to red (bad) like efficiency. On defense (frequency allowed), the shading follows what is good for the defense, as on the Matchup page: allowing a play type more often is red, allowing it less is blue; the number itself is still 100 = allowed most often.")}
    ${G("Eff. %ile (PPP %ile)","Efficiency percentile: percentile of PPP among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = most efficient. Shaded blue above the median and red below.")}
    ${G("Defense","Team defense tables describe what opponents did against the team. PPP allowed = opponent points per play. PPP %ile on defense: 100 = fewest points allowed per play. Freq %ile on defense: 100 = opponents run that play type most often against them.")}
