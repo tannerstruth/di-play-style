@@ -138,7 +138,7 @@ const BVAR = {"Self-Creation":"--b-sc","Rollers":"--b-roll","Off-Ball Cutters":"
   "Post-Ups":"--b-post","Transition":"--b-trans","Putbacks":"--b-put","Other":"--b-other"};
 const SHORT = {"Self-Creation":"Self-Create","Rollers":"Rollers","Off-Ball Cutters":"Cutters","Off-Ball Shooters":"Shooters","Post-Ups":"Post-Ups","Transition":"Transition","Putbacks":"Putbacks","Other":"Other"};
 const SUBS = {"Self-Creation":["Dribble Jumper","Rim Attack","Turnovers"],"Rollers":["Roll to Rim","Pick-and-Pop","Turnovers"],
-  "Off-Ball Cutters":["Cut","Turnovers"],"Off-Ball Shooters":["Catch-and-Shoot 3","Big-Assisted C&S 3","Catch-and-Shoot 2","Turnovers"],
+  "Off-Ball Cutters":["Cut","Turnovers"],"Off-Ball Shooters":["Catch-and-Shoot 3","Attack & Kick 3","Big-Assisted C&S 3","Catch-and-Shoot 2","Turnovers"],
   "Post-Ups":["Post-Up Scoring","High-Low","Turnovers"],"Transition":[],"Putbacks":[],"Other":["Team Turnover"]};
 // sub-buckets come from the data, so a sub-bucket added to the model shows up without a template change
 if(DATA && DATA.bs){ for(const k in SUBS) SUBS[k]=[]; DATA.bs.forEach(([b,s])=>{ if(s!=="All") (SUBS[b]||(SUBS[b]=[])).push(s); }); }
@@ -584,8 +584,10 @@ function scCard(r, def){
     ["Short-roll assists / G", f2(r.shortroll_ast_pg), null],
     ["Post-up assists / G", f2(r.postup_ast_pg), null],
     ["High-low assists / G", f2(r.highlow_ast_pg), null],
+    ["Kick-outs created / G", f2(r.kick_ast_pg), r.kick_ast_pg_pctile],
+    ["Kick-out PPP (Attack & Kick 3s)", f3(r.kick_ppp), r.kick_ppp_pctile],
   ];
-  return `<div class="tiles">${items.map(([l,v,p])=>`<div class="tile"><div class="l">${who}${l}</div><div class="v">${v}</div>${isNum(p)?`<div class="c">D-I %ile <span class="pc" style="${pctStyle(p,l.includes("turnover")?"eff":"freq")}">${f0(p)}</span></div>`:""}</div>`).join("")}</div>`;
+  return `<div class="tiles">${items.map(([l,v,p])=>`<div class="tile"><div class="l">${who}${l}</div><div class="v">${v}</div>${isNum(p)?`<div class="c">D-I %ile <span class="pc" style="${pctStyle(p,(l.includes("turnover")||l.includes("PPP"))?"eff":"freq")}">${f0(p)}</span></div>`:""}</div>`).join("")}</div>`;
 }
 let CUR_TEAM=null;
 function pageTeam(team){
@@ -813,7 +815,8 @@ function pagePlayer(team, player){
     <div class="tile"><div class="l">SC PPP incl. passing</div><div class="v">${f3(sc.sc_ppp_incl_passing)}</div></div>
     <div class="tile"><div class="l">Short-roll assists</div><div class="v">${f0(sc.shortroll_assists)}</div></div>
     <div class="tile"><div class="l">Post-up assists</div><div class="v">${f0(sc.postup_assists)}</div></div>
-    <div class="tile"><div class="l">High-low assists</div><div class="v">${f0(sc.highlow_assists)}</div></div></div></div>`:""}`;
+    <div class="tile"><div class="l">High-low assists</div><div class="v">${f0(sc.highlow_assists)}</div></div>
+    <div class="tile"><div class="l">Kick-outs created</div><div class="v">${f0(sc.kick_assists)}</div><div class="c">${f2(sc.kick_ast_pg)} per game · already in SC assists</div></div></div></div>`:""}`;
   document.getElementById("plSel").onchange=e=>{ const q=pByKey[e.target.value]; location.hash=hrefP(q.team,q.player); };
   document.getElementById("teamSel").onchange=e=>{ const t=e.target.value; const c=(PLAYERS_BY_TEAM[t]||[]).slice().sort((a,b)=>b.plays-a.plays)[0]; if(c) location.hash=hrefP(c.team,c.player); };
   const pf=document.getElementById("pFind"), pl=document.getElementById("pList");
@@ -863,8 +866,12 @@ function pageTeamLB(){
       {k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_ast_pg",label:"Short-roll ast/G",fmt:r=>td(f2(r.shortroll_ast_pg)),val:r=>r.shortroll_ast_pg},
       {k:"postup_ast_pg",label:"Post-up ast/G",fmt:r=>td(f2(r.postup_ast_pg)),val:r=>r.postup_ast_pg},
-      {k:"highlow_ast_pg",label:"High-low ast/G",fmt:r=>td(f2(r.highlow_ast_pg)),val:r=>r.highlow_ast_pg}];
-    body=sortTable(id,cols,rows,{sortK:"sc_ast_rate",dir:-1,maxH:"75vh"})+`<p class="note">${def?"Defense: these are opponents' numbers against this team. ":""}SC assist rate %ile: 100 = highest assist rate in D-I. SC TOV rate %ile: ${def?"100 = forces the most Self-Creation turnovers":"100 = fewest Self-Creation turnovers"}.</p>`;
+      {k:"highlow_ast_pg",label:"High-low ast/G",fmt:r=>td(f2(r.highlow_ast_pg)),val:r=>r.highlow_ast_pg},
+      {k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg},
+      {k:"kick_ast_pg_pctile",label:"%ile",fmt:r=>pcell(r.kick_ast_pg_pctile,"freq"),val:r=>r.kick_ast_pg_pctile},
+      {k:"kick_ppp",label:"Kick-out PPP",fmt:r=>td(f3(r.kick_ppp)),val:r=>r.kick_ppp},
+      {k:"kick_ppp_pctile",label:"%ile",fmt:r=>pcell(r.kick_ppp_pctile,"eff"),val:r=>r.kick_ppp_pctile}];
+    body=sortTable(id,cols,rows,{sortK:"sc_ast_rate",dir:-1,maxH:"75vh"})+`<p class="note">${def?"Defense: these are opponents' numbers against this team. ":""}SC assist rate %ile: 100 = highest assist rate in D-I. SC TOV rate %ile: ${def?"100 = forces the most Self-Creation turnovers":"100 = fewest Self-Creation turnovers"}. Kick-outs are assisted catch-and-shoot 3s from an On-Ball Guard (already counted in SC assists, not added again); Kick-out PPP is the Attack &amp; Kick 3 sub-bucket's PPP, misses included${def?", 100 = allows the fewest points":""}.</p>`;
   } else {
     const rows=LT.map(t=>getRow(teamRows(side,t),tlb.bucket,tlb.sub)).filter(Boolean);
     const av=avgRow(side,tlb.bucket,tlb.sub);
@@ -930,7 +937,8 @@ function pagePlayerLB(){
       {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},{k:"sc_tov",label:"SC TOV",fmt:r=>td(f1(r.sc_tov)),val:r=>r.sc_tov},
       {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},{k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_assists",label:"Short-roll ast",fmt:r=>td(f0(r.shortroll_assists)),val:r=>r.shortroll_assists},{k:"postup_assists",label:"Post-up ast",fmt:r=>td(f0(r.postup_assists)),val:r=>r.postup_assists},
-      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists}];
+      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists},
+      {k:"kick_assists",label:"Kick-outs",fmt:r=>td(f0(r.kick_assists)),val:r=>r.kick_assists},{k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg}];
     body=pagedTable(id,cols,rows,{sortK:"sc_ast_pg",dir:-1,maxH:"70vh"});
   } else {
     minLabel="Min plays in bucket";
@@ -986,7 +994,7 @@ function pageGlossary(){
    ${G(`<span class="sw" style="background:${bcol("Self-Creation")}"></span>Self-Creation`,"On-ball creation: pick-and-roll ball handling and isolation together (the data can't separate them). Sub-buckets: <b>Dribble Jumper</b> (pull-ups, step-backs, unassisted jumpers, turnarounds/fadeaways outside post range) and <b>Rim Attack</b> (driving layups and floaters, unassisted layups/dunks by guards and wings, assisted drives by guards/wings as catch-and-attack).")}
    ${G(`<span class="sw" style="background:${bcol("Rollers")}"></span>Rollers`,"The screener's finish, credited to Bigs and Stretch Bigs. <b>Roll to Rim</b>: assisted (by a guard or wing) layups, dunks, alley-oops, driving layups and floaters by bigs (also picks up dump-offs in the dunker spot). <b>Pick-and-Pop</b>: assisted 3s by bigs and assisted 2pt jumpers by bigs from 12+ ft. Short-roll passing is tracked as an overlay.")}
    ${G(`<span class="sw" style="background:${bcol("Off-Ball Cutters")}"></span>Off-Ball Cutters`,"<b>Cut</b>: assisted plain layups, dunks and alley-oops by guards and wings.")}
-   ${G(`<span class="sw" style="background:${bcol("Off-Ball Shooters")}"></span>Off-Ball Shooters`,"<b>Catch-and-Shoot 3</b>: plain 3s by guards and wings assisted by a guard or wing. <b>Big-Assisted C&S 3</b>: plain 3s by guards and wings assisted by a Big or Stretch Big (kick-outs from the post or the short roll; the data can't tell which). The two don't overlap; add them for all catch-and-shoot 3s. <b>Catch-and-Shoot 2</b>: assisted plain 2pt jumpers by guards and wings.")}
+   ${G(`<span class="sw" style="background:${bcol("Off-Ball Shooters")}"></span>Off-Ball Shooters`,"<b>Catch-and-Shoot 3</b>: plain 3s by guards and wings assisted by a Wing (swing and extra passes), plus the few with no passer role on file. <b>Attack &amp; Kick 3</b>: plain 3s by guards and wings assisted by an On-Ball Guard, i.e. the creator kicking out. <b>Big-Assisted C&S 3</b>: plain 3s by guards and wings assisted by a Big or Stretch Big (kick-outs from the post or the short roll; the data can't tell which). The three don't overlap; add them for all catch-and-shoot 3s. <b>Catch-and-Shoot 2</b>: assisted plain 2pt jumpers by guards and wings.")}
    ${G(`<span class="sw" style="background:${bcol("Post-Ups")}"></span>Post-Ups`,"<b>Post-Up Scoring</b>: hooks; turnarounds within 12 ft (17 ft for bigs); unassisted plain layups/dunks by bigs; unassisted 2pt jumpers by bigs within 10 ft. <b>High-Low</b>: a plain layup, dunk or alley-oop by a Big or Stretch Big, assisted by another Big or Stretch Big (big-to-big at the rim; these would otherwise be Roll to Rim). High-Low plays are credited to the finishing big; the passer gets High-Low Passing.")}
    ${G("Turnovers (sub-row)","Every bucket has a Turnovers sub-row. Turnovers are allocated by the player's own play mix; On-Ball Guard turnovers all go to Self-Creation; offensive fouls by bigs go to Rollers (moving screens).")}
    ${G(`<span class="sw" style="background:${bcol("Transition")}"></span>Transition`,"Any play within 8 seconds of a live-ball defensive rebound or a steal. Kept so frequencies are accurate; use your own numbers for transition analysis.")}
@@ -998,7 +1006,8 @@ function pageGlossary(){
    ${G("High-Low Passing","Assists by a Big or Stretch Big to another Big or Stretch Big's plain layup, dunk or alley-oop. The passer's location isn't in the data, so this is every big-to-big finish at the rim, not only passes from the top of the key.")}
    ${G("Short-Roll Passing","All other assists by Stretch Big passers, and Big passers' assists to any other shot at the rim (e.g. to a cutting guard).")}
    ${G("Post-Up Passing","Big passers' assists to a 3 or a jumper beyond 10 ft. Low confidence: it can't be told apart from short-roll kick-outs.")}
-   ${G("Missed shots in High-Low and Big-Assisted C&S 3","Misses never list a passer. A missed shot's assisted share is split using the shooter's own share of those makes that came from big passers, shrunk toward his role's average (same method as the catch-and-shoot split). That is why these counts have decimals.")}
+   ${G("Attack &amp; Kick (inferred)","Estimated from play-by-play, which records who assisted a make but not whether a drive came first. We count a half-court catch-and-shoot 3 by a guard or wing as Attack &amp; Kick when the passer is an On-Ball Guard (roles from the roles sheet for America East, the role files plus stat inference elsewhere), on the assumption that most of those passes come off a downhill drive or a ball screen that collapsed the defense. A swing from a wing and a kick-out from a big are left out. Its PPP includes misses, so it is the real efficiency of those looks. On the passing side, <b>Kick-outs created</b> counts the made 3s an On-Ball Guard set up this way; they are already inside Self-Creation assists, so they are shown alongside and never added again.")}
+   ${G("Missed shots in High-Low, Big-Assisted C&S 3 and Attack &amp; Kick 3","Misses never list a passer. A missed shot's assisted share is split using the shooter's own share of those makes that came from big passers, shrunk toward his role's average (same method as the catch-and-shoot split). That is why these counts have decimals.")}
    ${G("SC assist rate","Self-Creation assists ÷ (Self-Creation plays + Self-Creation assists).")}
    ${G("SC turnover rate","Self-Creation turnovers ÷ (Self-Creation plays + Self-Creation assists). Its team percentile is oriented so 100 is good: on offense 100 = fewest turnovers, on defense 100 = forces the most.")}
    ${G("SC PPP incl. passing","Self-Creation points plus points from Self-Creation assists, per Self-Creation play-or-assist. Runs high because missed shots after a pass can't be seen.")}
