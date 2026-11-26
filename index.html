@@ -226,6 +226,8 @@ function pctStyle(p, kind){ // kind: "eff" diverging (100 good), "freq" sequenti
   return `background:rgba(${c},${a.toFixed(3)})`;
 }
 function pcell(p,kind,extra){ return `<td class="${extra||""}"><span class="pc" style="${pctStyle(p,kind)}">${f0(p)}</span></td>`; }
+// defense frequency allowed: the number stays the plain percentile (100 = allows it most), the shading follows what is good for the defense (allowing more = redder, less = bluer)
+function pcellDefFreq(p,extra){ return `<td class="${extra||""}"><span class="pc" style="${pctStyle(isNum(p)?100-p:p,"eff")}">${f0(p)}</span></td>`; }
 
 // ---------------------------------------------------------------- tooltip
 const tip=document.getElementById("tip");
@@ -334,7 +336,7 @@ function statCols(opts={}){ // opts.def: defense, opts.noPct
     {k:"points",label:"Pts",fmt:r=>td(f1(r.points)),val:r=>r.points},
     {k:"ppg",label:"Pts/G",fmt:r=>td(f1(r.ppg)),val:r=>r.ppg},
     {k:"freq",label:"Freq",cls:"bl",fmt:r=>td(fp(r.freq),"bl"),val:r=>r.freq,title:"Share of all plays"},
-    {k:"freq_pctile",label:"Freq %ile",fmt:r=>pcell(r.freq_pctile,(r.sub==="Turnovers"||r.bucket==="Other")?"eff":"freq"),val:r=>r.freq_pctile,title:freqTitle},
+    {k:"freq_pctile",label:"Freq %ile",fmt:r=>(r.sub==="Turnovers"||r.bucket==="Other")?pcell(r.freq_pctile,"eff"):opts.def?pcellDefFreq(r.freq_pctile):pcell(r.freq_pctile,"freq"),val:r=>r.freq_pctile,title:freqTitle},
     {k:"freq_halfcourt",label:"HC Freq",fmt:r=>td(fp(r.freq_halfcourt)),val:r=>r.freq_halfcourt,title:"Share of half-court plays only"},
     {k:"ppp",label:opts.def?"PPP allowed":"PPP",cls:"bl",fmt:r=>td(f3(r.ppp),"bl"),val:r=>r.ppp},
     {k:"ppp_pctile",label:opts.def?"Eff. %ile":"Eff. %ile",fmt:r=>pcell(pp(r),"eff"),val:r=>pp(r),title:effTitle},
@@ -634,7 +636,7 @@ function pageTeam(team){
   </div>
   ${side==="def"?dschCard(team):""}
   <div class="card"><h2>${side==="off"?"Offense":"Defense"} by play type</h2><h3>Click ▸ to open sub-buckets. Transition and Putbacks are listed so the frequencies add to 100%.</h3>${bucketTable("tb_"+side,rows,{def:side==="def"})}
-   <p class="note">PPP %ile shading: blue = better than the D-I median, red = worse. Freq %ile shading is volume only (darker = more often), not good or bad.</p></div>
+   <p class="note">PPP %ile shading: blue = better than the D-I median, red = worse. ${side==="def"?"Freq %ile shading on defense: allowing a play type more often than most teams is red, allowing it less is blue (the number is still 100 = allowed most often).":"Freq %ile shading is volume only (darker = more often), not good or bad."}</p></div>
   <div class="card"><h2>Game by game${side==="def"?" (defense)":""}</h2><h3>${side==="off"?"How each play type was used, and how well, in every game":"What opponents ran against them, and how well, in every game"}</h3>${gameSection(team,side,rows)}</div>
   <div class="card"><h2>${side==="off"?"Self-Creation passing":"Opponent Self-Creation passing"}</h2><h3>Assists out of Self-Creation and from bigs, counted on top of the shooter's bucket</h3>${scCard(sc,side==="def",rows)}</div>
   <div class="card"><h2>Roster play mix</h2><h3>Share of each player's plays by bucket. Click a name for the player page.</h3>${sortTable("roster",rcols,roster,{sortK:"plays_pg",dir:-1})}</div>`;
@@ -843,7 +845,7 @@ function pageTeamLB(){
     const groups=[{label:"",span:(def?1:0)+5}];
     ALLB.filter(b=>b!=="Other").forEach(b=>{ groups.push({label:b,span:4,cls:"bl"});
       cols.push({k:"f_"+b,label:"Freq",cls:"bl",fmt:r=>td(fp(r["f_"+b]),"bl"),val:r=>r["f_"+b]});
-      cols.push({k:"fp_"+b,label:"Freq %ile",fmt:r=>pcell(r["fp_"+b],"freq"),val:r=>r["fp_"+b],title:def?"100 = opponents run it most often against them":"100 = runs it most often in D-I"});
+      cols.push({k:"fp_"+b,label:"Freq %ile",fmt:r=>def?pcellDefFreq(r["fp_"+b]):pcell(r["fp_"+b],"freq"),val:r=>r["fp_"+b],title:def?"100 = opponents run it most often against them":"100 = runs it most often in D-I"});
       cols.push({k:"p_"+b,label:def?"PPP allowed":"PPP",fmt:r=>td(f3(r["p_"+b])),val:r=>r["p_"+b]});
       cols.push({k:"pp_"+b,label:"Eff. %ile",fmt:r=>pcell(r["pp_"+b],"eff"),val:r=>r["pp_"+b],title:def?"100 = fewest points allowed per play":"100 = most efficient in D-I"});
     });
@@ -974,7 +976,7 @@ function pageGlossary(){
    ${G("Half-court frequency (HC Freq)","The same share, counting only half-court plays (Transition and Putbacks removed).")}
    ${G("PPP","Points per play: points ÷ plays.")}
    ${G("TOV%","Share of the bucket's plays that ended in a turnover.")}
-   ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. It describes style, not quality, so it is shaded in a single blue scale. Exception, turnover rows (each bucket's Turnovers sub-row and Other): on offense 100 = turns it over least often, on defense 100 = forces turnovers most often, and both are shaded blue (good) to red (bad) like efficiency.")}
+   ${G("Freq %ile","Percentile of frequency among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = uses it most often. On offense it describes style, not quality, so it is shaded in a single blue scale. Exception, turnover rows (each bucket's Turnovers sub-row and Other): on offense 100 = turns it over least often, on defense 100 = forces turnovers most often, and both are shaded blue (good) to red (bad) like efficiency. On defense (frequency allowed), the shading follows what is good for the defense, as on the Matchup page: allowing a play type more often is red, allowing it less is blue; the number itself is still 100 = allowed most often.")}
    ${G("Eff. %ile (PPP %ile)","Efficiency percentile: percentile of PPP among all D-I teams (players: D-I players with 10+ plays in the bucket). 100 = most efficient. Shaded blue above the median and red below.")}
    ${G("Defense","Team defense tables describe what opponents did against the team. PPP allowed = opponent points per play. PPP %ile on defense: 100 = fewest points allowed per play. Freq %ile on defense: 100 = opponents run that play type most often against them.")}
    ${G("D-I average","Average across all D-I teams: frequency is the mean team frequency; PPP is total points ÷ total plays across D-I.")}
