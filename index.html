@@ -858,7 +858,10 @@ function pageTeamLB(){
       {k:"games",label:"G",fmt:r=>td(f0(r.games)),val:r=>r.games},
       {k:"sc_plays",label:"SC plays",fmt:r=>td(f1(r.sc_plays)),val:r=>r.sc_plays},
       {k:"sc_assists",label:"SC ast",fmt:r=>td(f0(r.sc_assists)),val:r=>r.sc_assists},
-      {k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},
+      {k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},      {k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg},
+      {k:"kick_ast_pg_pctile",label:"%ile",fmt:r=>pcell(r.kick_ast_pg_pctile,"freq"),val:r=>r.kick_ast_pg_pctile},
+      {k:"kick_ppp",label:"Kick-out PPP",fmt:r=>td(f3(r.kick_ppp)),val:r=>r.kick_ppp},
+      {k:"kick_ppp_pctile",label:"%ile",fmt:r=>pcell(r.kick_ppp_pctile,"eff"),val:r=>r.kick_ppp_pctile},
       {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},
       {k:"sc_ast_rate_pctile",label:"%ile",fmt:r=>pcell(r.sc_ast_rate_pctile,"freq"),val:r=>r.sc_ast_rate_pctile},
       {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},
@@ -866,11 +869,7 @@ function pageTeamLB(){
       {k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_ast_pg",label:"Short-roll ast/G",fmt:r=>td(f2(r.shortroll_ast_pg)),val:r=>r.shortroll_ast_pg},
       {k:"postup_ast_pg",label:"Post-up ast/G",fmt:r=>td(f2(r.postup_ast_pg)),val:r=>r.postup_ast_pg},
-      {k:"highlow_ast_pg",label:"High-low ast/G",fmt:r=>td(f2(r.highlow_ast_pg)),val:r=>r.highlow_ast_pg},
-      {k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg},
-      {k:"kick_ast_pg_pctile",label:"%ile",fmt:r=>pcell(r.kick_ast_pg_pctile,"freq"),val:r=>r.kick_ast_pg_pctile},
-      {k:"kick_ppp",label:"Kick-out PPP",fmt:r=>td(f3(r.kick_ppp)),val:r=>r.kick_ppp},
-      {k:"kick_ppp_pctile",label:"%ile",fmt:r=>pcell(r.kick_ppp_pctile,"eff"),val:r=>r.kick_ppp_pctile}];
+      {k:"highlow_ast_pg",label:"High-low ast/G",fmt:r=>td(f2(r.highlow_ast_pg)),val:r=>r.highlow_ast_pg}];
     body=sortTable(id,cols,rows,{sortK:"sc_ast_rate",dir:-1,maxH:"75vh"})+`<p class="note">${def?"Defense: these are opponents' numbers against this team. ":""}SC assist rate %ile: 100 = highest assist rate in D-I. SC TOV rate %ile: ${def?"100 = forces the most Self-Creation turnovers":"100 = fewest Self-Creation turnovers"}. Kick-outs are assisted catch-and-shoot 3s from an On-Ball Guard (already counted in SC assists, not added again); Kick-out PPP is the Attack &amp; Kick 3 sub-bucket's PPP, misses included${def?", 100 = allows the fewest points":""}.</p>`;
   } else {
     const rows=LT.map(t=>getRow(teamRows(side,t),tlb.bucket,tlb.sub)).filter(Boolean);
@@ -933,7 +932,7 @@ function pagePlayerLB(){
     const rows=PLAYERS.filter(p=>p.sc&&pass(p)&&p.sc.sc_plays>=plb.min).map(p=>({...p.sc,team:p.team,player:p.player,role:p.role}));
     const cols=[nameCell,teamCell,confCell,roleCell,{k:"games",label:"G",fmt:r=>td(f0(r.games)),val:r=>r.games},
       {k:"sc_plays",label:"SC plays",fmt:r=>td(f1(r.sc_plays)),val:r=>r.sc_plays},{k:"sc_points",label:"SC pts",fmt:r=>td(f1(r.sc_points)),val:r=>r.sc_points},
-      {k:"sc_assists",label:"SC ast",fmt:r=>td(f0(r.sc_assists)),val:r=>r.sc_assists},{k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},
+      {k:"sc_assists",label:"SC ast",fmt:r=>td(f0(r.sc_assists)),val:r=>r.sc_assists},{k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},{k:"kick_assists",label:"Kick-outs",fmt:r=>td(f0(r.kick_assists)),val:r=>r.kick_assists},{k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg},
       {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},{k:"sc_tov",label:"SC TOV",fmt:r=>td(f1(r.sc_tov)),val:r=>r.sc_tov},
       {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},{k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_assists",label:"Short-roll ast",fmt:r=>td(f0(r.shortroll_assists)),val:r=>r.shortroll_assists},{k:"postup_assists",label:"Post-up ast",fmt:r=>td(f0(r.postup_assists)),val:r=>r.postup_assists},
