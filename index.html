@@ -573,21 +573,25 @@ function bucketTable(id, rows, opts){ // grouped bucket table with expandable su
 function wireToggles(rerender){
   app.querySelectorAll("[data-open]").forEach(el=>el.addEventListener("click",()=>{ const k=el.dataset.open; teamUI.open[k]=!teamUI.open[k]; rerender(); }));
 }
-function scCard(r, def){
+function scCard(r, def, rows, player){
   if(!r) return "";
-  const who = def? "Opponents' " : "";
-  const items=[
-    ["Self-Creation assists / G", f2(r.sc_ast_pg), null],
-    ["SC assist rate", fp(r.sc_ast_rate), r.sc_ast_rate_pctile],
-    ["SC turnover rate", fp(r.sc_tov_rate), r.sc_tov_rate_pctile],
-    ["SC PPP incl. passing", f3(r.sc_ppp_incl_passing), null],
-    ["Short-roll assists / G", f2(r.shortroll_ast_pg), null],
-    ["Post-up assists / G", f2(r.postup_ast_pg), null],
-    ["High-low assists / G", f2(r.highlow_ast_pg), null],
-    ["Kick-outs created / G", f2(r.kick_ast_pg), r.kick_ast_pg_pctile],
-    ["Kick-out PPP (Attack & Kick 3s)", f3(r.kick_ppp), r.kick_ppp_pctile],
+  const pg=k=>isNum(r[k+"_ast_pg"])?r[k+"_ast_pg"]:(isNum(r[k+"_assists"])&&r.games?r[k+"_assists"]/r.games:null);
+  const hl = rows? getRow(rows,"Post-Ups","High-Low") : null;
+  const D = `<td style="color:var(--ink-3)">—</td>`, P=(p,k)=>isNum(p)?pcell(p,k):D, V=(v,f)=>isNum(v)?td(f(v)):D;
+  const lines=[
+    ["Self-Creation passing (all)", r.sc_ast_pg, r.sc_ast_pg_pctile, r.sc_ast_rate, r.sc_ast_rate_pctile, r.sc_tov_rate, r.sc_tov_rate_pctile, r.sc_ppp_incl_passing, r.sc_ppp_pctile, ""],
+    ["Kick-outs (Attack & Kick 3s)", r.kick_ast_pg, r.kick_ast_pg_pctile, null,null,null,null, player?null:r.kick_ppp, player?null:r.kick_ppp_pctile, "subrow"],
+    ["Short-roll passing", pg("shortroll"), r.shortroll_ast_pg_pctile, null,null,null,null, null,null, ""],
+    ["Post-up passing", pg("postup"), r.postup_ast_pg_pctile, null,null,null,null, null,null, ""],
+    ["High-low passing", pg("highlow"), r.highlow_ast_pg_pctile, null,null,null,null, hl&&hl.ppp, hl&&hl.ppp_pctile, ""],
   ];
-  return `<div class="tiles">${items.map(([l,v,p])=>`<div class="tile"><div class="l">${who}${l}</div><div class="v">${v}</div>${isNum(p)?`<div class="c">D-I %ile <span class="pc" style="${pctStyle(p,(l.includes("turnover")||l.includes("PPP"))?"eff":"freq")}">${f0(p)}</span></div>`:""}</div>`).join("")}</div>`;
+  const th=["Ast / G","%ile","Assist rate","%ile","TOV rate","%ile",def?"PPP allowed":"PPP","%ile"];
+  let h=`<div class="tw"><table><thead><tr><th class="l">Passing type</th>${th.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>`;
+  for(const [l,a,ap,ar,arp,tv,tvp,pp,ppp,cls] of lines)
+    h+=`<tr class="${cls}"><td class="l">${cls?"↳ ":""}${esc(l)}</td>${V(a,f2)}${P(ap,"freq")}${V(ar,fp)}${P(arp,"freq")}${V(tv,fp)}${P(tvp,"eff")}${V(pp,f3)}${P(ppp,"eff")}</tr>`;
+  if(player) return h+`</tbody></table></div><p class="note">Percentiles rank D-I players: assists per game against every player with 3+ games, rates and SC PPP against players with 10+ Self-Creation plays. TOV rate %ile: 100 = fewest turnovers. SC PPP counts his own Self-Creation shots plus the shots he assists, misses included. Kick-outs are already part of his Self-Creation assists. Passing to other play types has no PPP of its own because a missed shot never records a passer.</p>`;
+  h+=`</tbody></table></div><p class="note">${def?"Opponents' passing against this team. ":""}Ast / G %ile: 100 = most assists per game (volume only). TOV rate and PPP %ile: 100 = best for ${def?"the defense (forces the most turnovers, allows the fewest points)":"the offense"}. PPP is the efficiency of the shots those passes lead to, misses included: Self-Creation counts its own shots plus the shots it assists, Kick-outs use the Attack &amp; Kick 3 sub-bucket and High-low uses the Post-Ups / High-Low sub-bucket. Short-roll and post-up passes feed many shot types, so they have no PPP of their own. Kick-outs are already part of Self-Creation assists.</p>`;
+  return h;
 }
 let CUR_TEAM=null;
 function pageTeam(team){
@@ -632,7 +636,7 @@ function pageTeam(team){
   <div class="card"><h2>${side==="off"?"Offense":"Defense"} by play type</h2><h3>Click ▸ to open sub-buckets. Transition and Putbacks are listed so the frequencies add to 100%.</h3>${bucketTable("tb_"+side,rows,{def:side==="def"})}
    <p class="note">PPP %ile shading: blue = better than the D-I median, red = worse. Freq %ile shading is volume only (darker = more often), not good or bad.</p></div>
   <div class="card"><h2>Game by game${side==="def"?" (defense)":""}</h2><h3>${side==="off"?"How each play type was used, and how well, in every game":"What opponents ran against them, and how well, in every game"}</h3>${gameSection(team,side,rows)}</div>
-  <div class="card"><h2>${side==="off"?"Self-Creation passing":"Opponent Self-Creation passing"}</h2><h3>Assists out of Self-Creation and from bigs, counted on top of the shooter's bucket</h3>${scCard(sc,side==="def")}</div>
+  <div class="card"><h2>${side==="off"?"Self-Creation passing":"Opponent Self-Creation passing"}</h2><h3>Assists out of Self-Creation and from bigs, counted on top of the shooter's bucket</h3>${scCard(sc,side==="def",rows)}</div>
   <div class="card"><h2>Roster play mix</h2><h3>Share of each player's plays by bucket. Click a name for the player page.</h3>${sortTable("roster",rcols,roster,{sortK:"plays_pg",dir:-1})}</div>`;
   document.getElementById("teamSel").onchange=e=>{ location.hash=hrefT(e.target.value); };
   document.getElementById("lbConf").onclick=()=>{ tlb.conf=confOf(team); };
@@ -808,15 +812,7 @@ function pagePlayer(team, player){
   </div>
   <div class="card"><h2>Offense by play type</h2><h3>Click ▸ to open sub-buckets. Percentiles are blank under 10 plays in a bucket.</h3>${bucketTable("pb",p.rows,{cols})}
   </div>
-  ${sc?`<div class="card"><h2>Passing overlays</h2><h3>Assists credited on top of the shooter's bucket</h3><div class="tiles">
-    <div class="tile"><div class="l">Self-Creation assists</div><div class="v">${f0(sc.sc_assists)}</div><div class="c">${f2(sc.sc_ast_pg)} per game</div></div>
-    <div class="tile"><div class="l">SC assist rate</div><div class="v">${fp(sc.sc_ast_rate)}</div></div>
-    <div class="tile"><div class="l">SC turnovers</div><div class="v">${f1(sc.sc_tov)}</div><div class="c">rate ${fp(sc.sc_tov_rate)}</div></div>
-    <div class="tile"><div class="l">SC PPP incl. passing</div><div class="v">${f3(sc.sc_ppp_incl_passing)}</div></div>
-    <div class="tile"><div class="l">Short-roll assists</div><div class="v">${f0(sc.shortroll_assists)}</div></div>
-    <div class="tile"><div class="l">Post-up assists</div><div class="v">${f0(sc.postup_assists)}</div></div>
-    <div class="tile"><div class="l">High-low assists</div><div class="v">${f0(sc.highlow_assists)}</div></div>
-    <div class="tile"><div class="l">Kick-outs created</div><div class="v">${f0(sc.kick_assists)}</div><div class="c">${f2(sc.kick_ast_pg)} per game · already in SC assists</div></div></div></div>`:""}`;
+  ${sc?`<div class="card"><h2>Self-Creation passing</h2><h3>Assists out of Self-Creation and from bigs, counted on top of the shooter's bucket</h3>${scCard(sc,false,null,true)}</div>`:""}`;
   document.getElementById("plSel").onchange=e=>{ const q=pByKey[e.target.value]; location.hash=hrefP(q.team,q.player); };
   document.getElementById("teamSel").onchange=e=>{ const t=e.target.value; const c=(PLAYERS_BY_TEAM[t]||[]).slice().sort((a,b)=>b.plays-a.plays)[0]; if(c) location.hash=hrefP(c.team,c.player); };
   const pf=document.getElementById("pFind"), pl=document.getElementById("pList");
@@ -936,8 +932,7 @@ function pagePlayerLB(){
       {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},{k:"sc_tov",label:"SC TOV",fmt:r=>td(f1(r.sc_tov)),val:r=>r.sc_tov},
       {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},{k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_assists",label:"Short-roll ast",fmt:r=>td(f0(r.shortroll_assists)),val:r=>r.shortroll_assists},{k:"postup_assists",label:"Post-up ast",fmt:r=>td(f0(r.postup_assists)),val:r=>r.postup_assists},
-      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists},
-      {k:"kick_assists",label:"Kick-outs",fmt:r=>td(f0(r.kick_assists)),val:r=>r.kick_assists},{k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg}];
+      {k:"highlow_assists",label:"High-low ast",fmt:r=>td(f0(r.highlow_assists)),val:r=>r.highlow_assists}];
     body=pagedTable(id,cols,rows,{sortK:"sc_ast_pg",dir:-1,maxH:"70vh"});
   } else {
     minLabel="Min plays in bucket";
