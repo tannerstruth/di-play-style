@@ -483,7 +483,7 @@ const DS_W = {"Drop":{sc:1,cs:-1,mid:1,tov:-.75,pnp:.5,rim:-.5,three:-.5,steal:-
   "Havoc":{steal:1,tov:1,cut:.75,cs:-.75,ft:.5,sc_tov:.5,three:-.5,rim:.25},
   "Switch":{roll:-1,roll_rim:-.75,pnp:-.75,sc:.75,post:.5,scast_a:-.5,shortroll_a:-.5}};
 const sgn = v => isNum(v)? (v>0?"+":"")+v.toFixed(1) : "—";
-function schemeText(r){ return r? labelText(r.scheme,r.secondary) : ""; }
+function schemeText(r){ return r? labelText(r.scheme,r.secondary)+(r.zone_tendency?" · Zone tendency":"") : ""; }
 function schemeBadge(r){ return r? `<span class="badge" title="Defensive scheme (inferred). Confidence ${f0(r.confidence)} of 100.">Def: ${esc(schemeText(r))}</span>` : ""; }
 function wantArrow(s,k){ return wArrow(DS_W,s,k); }
 function dschTable(conf){
@@ -495,6 +495,7 @@ function dschTable(conf){
     {k:"scheme",label:"Scheme",cls:"l",fmt:r=>td(`<b>${esc(r.scheme)}</b>`,"l"),val:r=>r.scheme},
     {k:"confidence",label:"Conf.",fmt:r=>pcell(r.confidence,"freq"),val:r=>r.confidence,title:"Confidence 0-100: D-I percentile of the top score, scaled down when the runner-up is within 0.5"},
     {k:"secondary",label:"Secondary",cls:"l",fmt:r=>td(esc(r.secondary?(r.scheme==="Mixed"?"lean "+r.secondary:r.secondary):"—"),"l"),val:r=>r.secondary||"~",title:"Runner-up scheme within 1.0 of the top score, or Switch when its score is above 1.0 (for Mixed teams, the top scheme as a lean)"},
+    {k:"zone_tendency",label:"Zone tend.",cls:"l",fmt:r=>td(r.zone_tendency?"Yes":"—","l"),val:r=>r.zone_tendency?1:0,title:"Zone tendency tag: Paint Wall and Hedge / Blitz both 1.0+, Hedge no more than 1.0 above Paint Wall, plus manual overrides (Glossary)"},
     ...sc("drop","Drop"),...sc("hedge","Hedge / Blitz"),...sc("paint","Paint Wall"),...sc("havoc","Havoc"),...sc("switch","Switch"),
     {k:"sc",label:"SC freq",cls:"bl",fmt:r=>td(fp(r.sc),"bl"),val:r=>r.sc,title:"Self-Creation share of opponents' half-court plays"},
     {k:"cs",label:"C&S freq",fmt:r=>td(fp(r.cs)),val:r=>r.cs,title:"Off-Ball Shooters share of opponents' half-court plays"},
@@ -514,6 +515,7 @@ function dschCard(team){
   const rows=DS_IND.map(([k,lab])=>`<tr><td class="l">${esc(lab)}</td><td>${fmtInd(k,r[k])}</td><td>${sgn(r[k+"_vs_opp"])}</td>${pcell(r[k+"_pctile"],"freq")}${SCHEMES.map(([s])=>wantArrow(s,k)).join("")}</tr>`).join("");
   return `<div class="card"><h2>Defensive scheme: ${esc(schemeText(r))}</h2>
    <h3>Inferred from what opponents did against this defense, not from coverage tags (the play-by-play has none). Confidence ${f0(r.confidence)} of 100. Scores are weighted z-scores across D-I (0 = average); the label needs a score of 0.75 or more, otherwise the defense is Mixed. Based on ${f0(r.hc_plays)} opponent half-court plays.</h3>
+   ${r.zone_tendency||r.zone_note?`<p class="note" style="margin:0 0 6px"><b>Zone tendency${r.zone_tendency?"":" (not shown)"}:</b> ${r.zone_tendency?`Paint Wall ${f2(r.paint_score)} and Hedge / Blitz ${f2(r.hedge_score)} are both 1.0 or higher, a profile most zone defenses share. A hint to check on film, not a label.`:""} ${r.zone_note?esc(r.zone_note)+".":""}</p>`:""}
    <div class="tiles">${bars}</div>
    <div class="tw"><table><thead><tr><th class="l">Indicator</th><th>Allowed</th><th title="Allowed rate minus what these opponents do on offense in all their games, in percentage points (half-court indicators only)">vs. opp. norm</th><th title="D-I percentile (100 = highest); opponent-adjusted where a vs. opp. norm is shown">D-I %ile</th><th class="dsw" title="▲ the scheme score rises with this indicator, ▼ falls; double arrow = heavier weight">Drop</th><th class="dsw">Hedge</th><th class="dsw">Paint</th><th class="dsw">Havoc</th><th class="dsw">Switch</th></tr></thead><tbody>${rows}</tbody></table></div>
    <p class="note">Arrows show what each scheme looks for: ▲ the score rises when the indicator is high, ▼ when it is low (double arrow = heavier weight). The first 16 indicators are half-court and opponent-adjusted (100 = opponents did this far more than they usually do); the last 5 are raw allowed rates. See the Glossary for the rules.</p></div>`;
@@ -663,7 +665,7 @@ function pageTeam(team){
     <div class="tile"><div class="l">Offense pts/G (model)</div><div class="v">${f1(to.ppg)}</div><div class="c">technical FTs excluded</div></div>
     <div class="tile"><div class="l">Defense PPP allowed</div><div class="v">${f3(tdf.ppp)}</div><div class="c">${f1(tdf.plays_pg)} opp plays/G</div></div>
     <div class="tile"><div class="l">Offensive archetype</div><div class="v" style="font-size:16px">${esc(a.archetype||"—")}</div><div class="c">${a.secondary?esc((a.archetype==="Mixed"?"lean ":"")+a.secondary)+" · ":""}conf. ${f0(a.confidence)}${a.pace?" · "+esc(a.pace):""}</div></div>
-    <div class="tile"><div class="l">Defensive scheme</div><div class="v" style="font-size:16px">${esc((DSCH[team]||{}).scheme||"—")}</div><div class="c">${(DSCH[team]||{}).secondary?esc(((DSCH[team]||{}).scheme==="Mixed"?"lean ":"")+DSCH[team].secondary)+" · ":""}conf. ${f0((DSCH[team]||{}).confidence)}</div></div>
+    <div class="tile"><div class="l">Defensive scheme</div><div class="v" style="font-size:16px">${esc((DSCH[team]||{}).scheme||"—")}</div><div class="c">${(DSCH[team]||{}).secondary?esc(((DSCH[team]||{}).scheme==="Mixed"?"lean ":"")+DSCH[team].secondary)+" · ":""}conf. ${f0((DSCH[team]||{}).confidence)}${(DSCH[team]||{}).zone_tendency?" · Zone tendency":""}</div></div>
   </div>
   <div class="controls"><div class="seg" id="sideSeg"><button data-s="off" class="${side==="off"?"on":""}">Offense</button><button data-s="def" class="${side==="def"?"on":""}">Defense</button></div></div>
   <div class="grid g2">
@@ -794,7 +796,7 @@ function muTeamHead(t,right){
   const ar=MU.arch(t)||{}, ds=MU.dsch(t), T=muTots()[t];
   return `<div class="mu-team ${right?"r":""}"><div class="n">${muLink(t)}</div><div class="m">${esc(MU.conf(t))} · ${T.off.games||0} games</div>
    <div class="s">Offense: <b>${esc(ar.archetype||"—")}</b>${ar.archetype?` <span style="color:var(--ink-3)">(${[ar.secondary?(ar.archetype==="Mixed"?"lean ":"")+esc(ar.secondary):"",ar.pace?esc(ar.pace):"",isNum(ar.confidence)?"conf. "+f0(ar.confidence):""].filter(Boolean).join(", ")})</span>`:""}</div>
-   <div class="s">Defense: <b>${esc(ds?ds.scheme:"—")}</b>${ds?` <span style="color:var(--ink-3)">(${ds.secondary?(ds.scheme==="Mixed"?"lean ":"")+esc(ds.secondary)+", ":""}conf. ${f0(isNum(ds.confidence)?ds.confidence:ds.fit)})</span>`:""}</div></div>`;
+   <div class="s">Defense: <b>${esc(ds?ds.scheme:"—")}</b>${ds?` <span style="color:var(--ink-3)">(${ds.secondary?(ds.scheme==="Mixed"?"lean ":"")+esc(ds.secondary)+", ":""}conf. ${f0(isNum(ds.confidence)?ds.confidence:ds.fit)}${ds.zone_tendency?", zone tendency":""})</span>`:""}</div></div>`;
 }
 function muExp(a,b){ const To=muTots()[a].off, Td=muTots()[b].def; return isNum(To.ppp)&&isNum(Td.ppp)&&isNum(MU_AVG.ppp)? To.ppp+Td.ppp-MU_AVG.ppp : null; }
 function pageMatchup(h){
@@ -865,6 +867,7 @@ function pagePlayer(team, player){
 const tlb={side:"off",bucket:"__overview",sub:"All",conf:""};
 function pageTeamLB(){
   const side=tlb.side, def=side==="def";
+  const ZF = t=>!def||!tlb.zone||!!(DSCH[t]||{}).zone_tendency;
   const bOpts=`<option value="__overview">All buckets (overview)</option>${ALLB.filter(b=>b!=="Other").map(b=>`<option ${tlb.bucket===b?"selected":""}>${b}</option>`).join("")}<option value="__sc" ${tlb.bucket==="__sc"?"selected":""}>Self-Creation passing</option>`;
   const subs = (SUBS[tlb.bucket]||[]).filter(s=>s!=="Turnovers"); if(tlb.sub==="Turnovers") tlb.sub="All"; // turnovers: see TOV% / TOV %ile
   if(!["All",...subs].includes(tlb.sub)) tlb.sub="All";
@@ -873,7 +876,7 @@ function pageTeamLB(){
   const archCell= def? {k:"arch",label:"Def. scheme",cls:"l",title:"Inferred defensive scheme (Glossary)",fmt:r=>r.__avg?td("","l"):td(esc(schemeText(DSCH[r.team])),"l"),val:r=>(DSCH[r.team]||{}).scheme}
     : {k:"arch",label:"Archetype",cls:"l",fmt:r=>r.__avg?td("","l"):td(esc(archText(arch[r.team])),"l"),val:r=>(arch[r.team]||{}).archetype};
   const confCell={k:"conf",label:"Conf.",cls:"l",fmt:r=>r.__avg?td("","l"):td(esc(confOf(r.team)),"l"),val:r=>confOf(r.team)};
-  const LT = tlb.conf? (TEAMS_BY_CONF[tlb.conf]||[]) : TEAMS;
+  const LT = (tlb.conf? (TEAMS_BY_CONF[tlb.conf]||[]) : TEAMS).filter(ZF);
   let body="", id="tlb_"+side+"_"+tlb.bucket.replace(/\W/g,"")+"_"+tlb.sub.replace(/\W/g,"");
   if(tlb.bucket==="__overview"){
     const rows=LT.map(t=>{const rs=teamRows(side,t); const o={team:t,...totals(rs)}; ALLB.forEach(b=>{const r=getRow(rs,b)||{}; o["f_"+b]=r.freq; o["fp_"+b]=r.freq_pctile; o["p_"+b]=r.ppp; o["pp_"+b]=r.ppp_pctile;}); return o;});
@@ -887,7 +890,7 @@ function pageTeamLB(){
     });
     body=sortTable(id,cols,rows,{sortK:"ppp",dir:def?1:-1,groups,maxH:"75vh"})+`<p class="note">Freq %ile = how often vs. D-I (style, single blue scale). Eff. %ile = PPP vs. D-I: blue = better than median, red = worse${def?"; on defense, 100 = fewest points allowed per play":""}. Scroll sideways for Transition and Putbacks. Pick a single bucket above for plays, points and per-game columns.</p>`;
   } else if(tlb.bucket==="__sc"){
-    const rows=(def?D.team_defense_selfcreation:D.team_offense_selfcreation).filter(r=>!tlb.conf||confOf(r.team)===tlb.conf);
+    const rows=(def?D.team_defense_selfcreation:D.team_offense_selfcreation).filter(r=>(!tlb.conf||confOf(r.team)===tlb.conf)&&ZF(r.team));
     const cols=[teamCell,confCell,archCell,
       {k:"games",label:"G",fmt:r=>td(f0(r.games)),val:r=>r.games},
       {k:"sc_plays",label:"SC plays",fmt:r=>td(f1(r.sc_plays)),val:r=>r.sc_plays},
@@ -917,14 +920,16 @@ function pageTeamLB(){
       pinned = pinRow(tlb.conf+" average",{freq:m("freq"),freq_halfcourt:BUCKETS.includes(tlb.bucket)?m("freq_halfcourt"):null,plays_pg:m("plays_pg"),ppg:m("ppg"),tov_rate:m("tov_rate"),ppp:pl?pt/pl:null}) + pinned; }
     body=sortTable(id,cols,rows,{sortK:"ppp",dir:def?1:-1,pinned,maxH:"75vh"})+`<p class="note">The average rows stay pinned${tlb.conf?" (conference average: mean of its teams; PPP pooled)":""}. ${def?"On defense, PPP %ile 100 = fewest points allowed per play; Freq %ile 100 = opponents run it most often.":"PPP %ile 100 = most efficient in D-I; Freq %ile 100 = runs it most often."}</p>`;
   }
-  app.innerHTML=`<h1>Team leaderboard: ${def?"Defense":"Offense"}</h1><p class="sub">${tlb.conf?`${esc(tlb.conf)}: ${LT.length} teams`:`All ${TEAMS.length} D-I teams`}. Percentiles rank against all of D-I. Click any column header to sort.</p>
+  app.innerHTML=`<h1>Team leaderboard: ${def?"Defense":"Offense"}</h1><p class="sub">${tlb.conf?`${esc(tlb.conf)}: ${LT.length} teams`:(def&&tlb.zone?`${LT.length} D-I teams with the Zone tendency tag`:`All ${TEAMS.length} D-I teams`)}. Percentiles rank against all of D-I. Click any column header to sort.</p>
    <div class="controls"><div class="seg" id="sideSeg"><button data-s="off" class="${!def?"on":""}">Team Offense</button><button data-s="def" class="${def?"on":""}">Team Defense</button></div>
+   ${def?`<label title="Show only defenses with the Zone tendency tag (Glossary)">Zone tendency<select id="zSel"><option value="">All defenses</option><option value="1" ${tlb.zone?"selected":""}>Tagged only</option></select></label>`:""}
    <label>Play type<select id="bSel">${bOpts}</select></label>
    ${subs.length?`<label>Sub-bucket<select id="sSel">${sOpts}</select></label>`:""}
    <label>Conference<select id="cSel">${confOptions(tlb.conf)}</select></label></div>
    <div class="card">${body}</div>`;
   document.querySelectorAll("#sideSeg button").forEach(b=>b.onclick=()=>{ tlb.side=b.dataset.s; pageTeamLB(); });
   document.getElementById("bSel").onchange=e=>{ tlb.bucket=e.target.value; tlb.sub="All"; pageTeamLB(); };
+  const zs=document.getElementById("zSel"); if(zs) zs.onchange=e=>{ tlb.zone=!!e.target.value; pageTeamLB(); };
   const ss=document.getElementById("sSel"); if(ss) ss.onchange=e=>{ tlb.sub=e.target.value; pageTeamLB(); };
   document.getElementById("cSel").onchange=e=>{ tlb.conf=e.target.value; pageTeamLB(); };
   wireSort(id,pageTeamLB);
@@ -1055,6 +1060,7 @@ function pageGlossary(){
    ${G("Havoc","Pressure and turnover-forcing: denial man, full-court presses, run-and-jump and pressure zones. Forces turnovers and steals, takes away catch-and-shoot, and gives up backdoor cuts, fouls and some rim attempts. Half-court and full-court pressure can't be separated yet. Score: +Steals, +Turnovers, +Cutters (¾), −Catch-and-shoot (¾), +FT trips (½), +Self-Creation turnovers (½), −3PA (½), +Rim (¼). Pressure zones such as St. John's usually land here or in Hedge / Blitz.")}
    ${G("Switch (secondary only)","Experimental. Switching shows up as few roller, roll-to-rim and pick-and-pop finishes, more isolation-style Self-Creation and mismatch post-ups, and fewer short-roll and Self-Creation assists. It is listed only as a secondary, when its score is above 1.0, because the defender on each play isn't in the data. Score: −Roller freq, −Roll-to-rim (¾), −Pick-and-pop (¾), +Self-Creation (¾), +Post-ups (½), −SC assist rate allowed (½), −Short-roll assists allowed (½).")}
    ${G("Mixed","The top score is under 0.75, so the defense doesn't look clearly like any one scheme. The top scheme is still shown as a lean (e.g. Mixed (lean Drop)) when its score is above 0.3.")}
+   ${G("Zone tendency (tag)","A hint shown next to the defensive label, not a label of its own. Play-by-play can't see zone, but zones tend to look like two schemes at once: they wall off the paint and concede 3s (Paint Wall) and they trap and jump passing lanes (Hedge / Blitz). A defense gets the tag when its Paint Wall and Hedge / Blitz scores are both 1.0 or higher and its Hedge / Blitz score is no more than 1.0 above its Paint Wall score (that last rule drops pressure and blitz man defenses such as Iowa State, Baylor and Texas Tech). Manual overrides: Houston is excluded because it plays man; its profile comes from rim protection plus blitzing. Checked against film: South Alabama, UMBC, Merrimack and St. John's get the tag; UAlbany doesn't. Filter for it on the Team Defense leaderboard.")}
    ${G("Indicators","The first 16 are half-court only, from opponents' plays against the team. Freq = share of opponents' half-court plays in that bucket (Self-Creation; catch-and-shoot = Off-Ball Shooters plays by guards and wings; pick-and-pop = assisted jumpers by bigs; roll-to-rim = Rollers / Roll to Rim; roller = Rollers plus pick-and-pop; Post-Ups; Off-Ball Cutters). Turnover rate forced = share of half-court plays ending in a turnover; steal turnover rate = share ending in a turnover with a steal credited. Roller and Self-Creation turnover rates are the share of those buckets' plays ending in a turnover. Rim rate = share of half-court FGA from 4 ft or less; mid-range = all other 2s; 3PA rate = share of FGA that are 3s; off-the-dribble share = Self-Creation 3s ÷ all 3PA; FT trip rate = FT trips per half-court play. The last 5 are raw allowed rates: High-Low and Putbacks share of all opponent plays, short-roll assists and kick-outs allowed per game, and Self-Creation assist rate allowed.")}
    ${G("Opponent adjustment","The 16 half-court indicators are the rate allowed minus what those opponents do on offense across all their games (weighted by half-court plays in each matchup), so a defense isn't labeled Drop just because it played pick-and-roll-heavy teams. The vs. opp. norm column shows that difference. The 5 raw indicators are not adjusted.")}
    ${G("How a team is assigned","Indicators are z-scored across D-I. Each scheme score is a weighted sum of z-scores (weights above, scaled so the scores are comparable; 0 = D-I average). The primary label is the highest of Drop, Hedge / Blitz, Paint Wall and Havoc, or Mixed when that score is under 0.75. Secondary = the runner-up when its score is above 0.45 and within 1.0 of the top; if there is none, Switch when its score is above 1.0. Confidence (0-100) = D-I percentile of the primary score, scaled down when the runner-up is within 0.5.")}
