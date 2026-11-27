@@ -753,9 +753,10 @@ function muChip(p,kind,good){ // blue = good, red = bad, shaded by "good" (a 0-1
   return `<span class="mu-chip" style="${st}">${Math.round(p)}</span>`;
 }
 // one comparison row: o/d = {v (display), p (percentile)}, kind ("eff" | "freq" | "pace"), sub (smaller sub-bucket row)
+// o.g: optional goodness score for the offense chip (turnover rate: the number is the plain percentile, 100 = turns it over most, shaded red)
 // "freq": the offense chip is blue when it runs the play type often; the defense chip is blue when it allows it rarely (shading uses 100 - percentile)
 function muRow(label,o,d,kind,opts={}){
-    return `<tr class="${opts.sub?"sub":""}"><td class="o">${o.v}</td><td>${o.p===undefined?"":muChip(o.p,kind)}</td><td class="st">${label}</td>
+    return `<tr class="${opts.sub?"sub":""}"><td class="o">${o.v}</td><td>${o.p===undefined?"":muChip(o.p,kind,isNum(o.g)?o.g:undefined)}</td><td class="st">${label}</td>
     <td>${d.p===undefined?"":muChip(d.p,kind,kind==="freq"&&isNum(d.p)?100-d.p:undefined)}</td><td class="d">${d.v}</td></tr>`;
 }
 function muCard(title,a,b,body){
@@ -767,17 +768,18 @@ function muCard(title,a,b,body){
 function muOverall(a,b){
   const To=muTots()[a].off, Td=muTots()[b].def;
   const po=muPct(a,"off","ppp",true), pd=muPct(b,"def","ppp",false);
-  const to=muPct(a,"off","tov",false), tdp=muPct(b,"def","tov",true);
+  const to=muPct(a,"off","tov",true), tdp=muPct(b,"def","tov",true);
   return muCard("Overall",a,b,
     muRow("Points per play",{v:f3(To.ppp),p:po},{v:f3(Td.ppp),p:pd},"eff")+
-    muRow("Turnover rate",{v:fp(To.tov),p:to},{v:fp(Td.tov),p:tdp},"eff")+
+    muRow("Turnover rate",{v:fp(To.tov),p:to,g:isNum(to)?100-to:undefined},{v:fp(Td.tov),p:tdp},"eff")+
     muRow("Plays per game",{v:f1(To.plays_pg),p:muPct(a,"off","plays_pg",true)},{v:f1(Td.plays_pg),p:muPct(b,"def","plays_pg",true)},"pace"));
 }
 function muBucket(b0,a,b){
   const off=MU.rows("off",a), def=MU.rows("def",b), o=getRow(off,b0)||{}, d=getRow(def,b0)||{};
   let h=muRow("Frequency",{v:fp(o.freq),p:o.freq_pctile},{v:fp(d.freq),p:d.freq_pctile},"freq")+
         muRow("PPP",{v:f3(o.ppp),p:o.ppp_pctile},{v:f3(d.ppp),p:d.ppp_pctile},"eff");
-  if((SUBS[b0]||[]).length) h+=muRow("Turnover rate",{v:fp(o.tov_rate)},{v:fp(d.tov_rate)},"eff");
+  if((SUBS[b0]||[]).length) { const tp=isNum(o.tov_rate_pctile)?100-o.tov_rate_pctile:null; // stored offense %ile is 100 = fewest turnovers; shown as 100 = most, shaded red
+    h+=muRow("Turnover rate",{v:fp(o.tov_rate),p:tp,g:o.tov_rate_pctile},{v:fp(d.tov_rate),p:d.tov_rate_pctile},"eff"); }
   (SUBS[b0]||[]).filter(s=>s!=="Turnovers").forEach(s=>{
     const so=getRow(off,b0,s)||{}, sd=getRow(def,b0,s)||{};
     const fq=v=>`<small>${fp(v)} of plays</small>`;
@@ -1068,7 +1070,7 @@ function pageGlossary(){
   </dl></div>
   <div class="card gl"><h2>Matchup page</h2><dl><!--MATCHUP-GLOSS-->
    ${G("What it shows","Pick any two teams. The left column puts Team A's offense against Team B's defense, the right column the reverse. Each card is one play-type bucket: the offense's number and D-I percentile on the left, the defense's on the right.")}
-   ${G("Percentile chips","Each chip is the D-I percentile of that number, shaded blue when it is good for that side and red when it is bad. PPP and turnover rate: 100 = best for that side (the offense scores the most or turns it over least; the defense allows the fewest points or forces the most turnovers). Frequency: the number is the plain percentile (100 = most often), but the shading follows what is good for each side: an offense that runs a play type a lot is blue, while a defense that allows it a lot is red and one that denies it is blue. Plays per game is pace only and stays grey.")}
+   ${G("Percentile chips","Each chip is the D-I percentile of that number, shaded blue when it is good for that side and red when it is bad. PPP: 100 = best for that side (the offense scores the most; the defense allows the fewest points). Turnover rate: the number is the plain percentile (100 = the most turnovers), so a high offense chip is red (turns it over a lot) and a high defense chip is blue (forces a lot). Frequency: the number is the plain percentile (100 = most often), but the shading follows what is good for each side: an offense that runs a play type a lot is blue, while a defense that allows it a lot is red and one that denies it is blue. Plays per game is pace only and stays grey.")}
    ${G("Sub-bucket rows","PPP for each sub-bucket, with the share of plays it makes up for the offense (and for the defense's opponents) under each value.")}
    ${G("Expected PPP","Offense PPP + defense PPP allowed − D-I average PPP. A simple additive estimate with no home-court or tempo adjustment.")}
   </dl></div>
