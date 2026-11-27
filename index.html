@@ -618,7 +618,7 @@ function scCard(r, def, rows, player){
   if(!r) return "";
   const pg=k=>isNum(r[k+"_ast_pg"])?r[k+"_ast_pg"]:(isNum(r[k+"_assists"])&&r.games?r[k+"_assists"]/r.games:null);
   const hl = rows? getRow(rows,"Post-Ups","High-Low") : null;
-  const D = `<td style="color:var(--ink-3)">—</td>`, P=(p,k)=>isNum(p)?pcell(p,k):D, V=(v,f)=>isNum(v)?td(f(v)):D;
+  const D = `<td style="color:var(--ink-3)">—</td>`, P=(p,k)=>isNum(p)?(def&&k==="freq"?pcellDefFreq(p):pcell(p,k)):D, V=(v,f)=>isNum(v)?td(f(v)):D;
   const lines=[
     ["Self-Creation passing (all)", r.sc_ast_pg, r.sc_ast_pg_pctile, r.sc_ast_rate, r.sc_ast_rate_pctile, r.sc_tov_rate, r.sc_tov_rate_pctile, r.sc_ppp_incl_passing, r.sc_ppp_pctile, ""],
     ["Kick-outs (from On-Ball Guards)", r.kick_ast_pg, r.kick_ast_pg_pctile, null,null,null,null, player?null:r.kick_ppp, player?null:r.kick_ppp_pctile, "subrow"],
@@ -631,7 +631,7 @@ function scCard(r, def, rows, player){
   for(const [l,a,ap,ar,arp,tv,tvp,pp,ppp,cls] of lines)
     h+=`<tr class="${cls}"><td class="l">${cls?"↳ ":""}${esc(l)}</td>${V(a,f2)}${P(ap,"freq")}${V(ar,fp)}${P(arp,"freq")}${V(tv,fp)}${P(tvp,"eff")}${V(pp,f3)}${P(ppp,"eff")}</tr>`;
   if(player) return h+`</tbody></table></div><p class="note">Percentiles rank D-I players: assists per game against every player with 3+ games, rates and SC PPP against players with 10+ Self-Creation plays. TOV rate %ile: 100 = fewest turnovers. SC PPP counts his own Self-Creation shots plus the shots he assists, misses included. Kick-outs are already part of his Self-Creation assists. Passing to other play types has no PPP of its own because a missed shot never records a passer.</p>`;
-  h+=`</tbody></table></div><p class="note">${def?"Opponents' passing against this team. ":""}Ast / G %ile: 100 = most assists per game (volume only). TOV rate and PPP %ile: 100 = best for ${def?"the defense (forces the most turnovers, allows the fewest points)":"the offense"}. PPP is the efficiency of the shots those passes lead to, misses included: Self-Creation counts its own shots plus the shots it assists, Kick-outs use the catch-and-shoot 3s set up by an On-Ball Guard and High-low uses the Post-Ups / High-Low sub-bucket. Short-roll and post-up passes feed many shot types, so they have no PPP of their own. Kick-outs are already part of Self-Creation assists.</p>`;
+  h+=`</tbody></table></div><p class="note">${def?"Opponents' passing against this team. Ast / G and assist rate %ile: 100 = opponents assist the most against this team; shaded red when the defense allows more than most teams and blue when it allows fewer.":"Ast / G %ile: 100 = most assists per game (volume only)."} TOV rate and PPP %ile: 100 = best for ${def?"the defense (forces the most turnovers, allows the fewest points)":"the offense"}. PPP is the efficiency of the shots those passes lead to, misses included: Self-Creation counts its own shots plus the shots it assists, Kick-outs use the catch-and-shoot 3s set up by an On-Ball Guard and High-low uses the Post-Ups / High-Low sub-bucket. Short-roll and post-up passes feed many shot types, so they have no PPP of their own. Kick-outs are already part of Self-Creation assists.</p>`;
   return h;
 }
 let CUR_TEAM=null;
@@ -897,18 +897,18 @@ function pageTeamLB(){
       {k:"sc_assists",label:"SC ast",fmt:r=>td(f0(r.sc_assists)),val:r=>r.sc_assists},
       {k:"sc_ast_pg",label:"SC ast/G",fmt:r=>td(f2(r.sc_ast_pg)),val:r=>r.sc_ast_pg},
       {k:"sc_ast_rate",label:"SC ast rate",fmt:r=>td(fp(r.sc_ast_rate)),val:r=>r.sc_ast_rate},
-      {k:"sc_ast_rate_pctile",label:"%ile",fmt:r=>pcell(r.sc_ast_rate_pctile,"freq"),val:r=>r.sc_ast_rate_pctile},
+      {k:"sc_ast_rate_pctile",label:"%ile",fmt:r=>def?pcellDefFreq(r.sc_ast_rate_pctile):pcell(r.sc_ast_rate_pctile,"freq"),val:r=>r.sc_ast_rate_pctile},
       {k:"sc_tov_rate",label:"SC TOV rate",fmt:r=>td(fp(r.sc_tov_rate)),val:r=>r.sc_tov_rate},
       {k:"sc_tov_rate_pctile",label:"%ile",fmt:r=>pcell(r.sc_tov_rate_pctile,"eff"),val:r=>r.sc_tov_rate_pctile},
       {k:"kick_ast_pg",label:"Kick-outs/G",fmt:r=>td(f2(r.kick_ast_pg)),val:r=>r.kick_ast_pg},
-      {k:"kick_ast_pg_pctile",label:"%ile",fmt:r=>pcell(r.kick_ast_pg_pctile,"freq"),val:r=>r.kick_ast_pg_pctile},
+      {k:"kick_ast_pg_pctile",label:"%ile",fmt:r=>def?pcellDefFreq(r.kick_ast_pg_pctile):pcell(r.kick_ast_pg_pctile,"freq"),val:r=>r.kick_ast_pg_pctile},
       {k:"kick_ppp",label:"Kick-out PPP",fmt:r=>td(f3(r.kick_ppp)),val:r=>r.kick_ppp},
       {k:"kick_ppp_pctile",label:"%ile",fmt:r=>pcell(r.kick_ppp_pctile,"eff"),val:r=>r.kick_ppp_pctile},
       {k:"sc_ppp_incl_passing",label:"SC PPP incl. passing",fmt:r=>td(f3(r.sc_ppp_incl_passing)),val:r=>r.sc_ppp_incl_passing},
       {k:"shortroll_ast_pg",label:"Short-roll ast/G",fmt:r=>td(f2(r.shortroll_ast_pg)),val:r=>r.shortroll_ast_pg},
       {k:"postup_ast_pg",label:"Post-up ast/G",fmt:r=>td(f2(r.postup_ast_pg)),val:r=>r.postup_ast_pg},
       {k:"highlow_ast_pg",label:"High-low ast/G",fmt:r=>td(f2(r.highlow_ast_pg)),val:r=>r.highlow_ast_pg}];
-    body=sortTable(id,cols,rows,{sortK:"sc_ast_rate",dir:-1,maxH:"75vh"})+`<p class="note">${def?"Defense: these are opponents' numbers against this team. ":""}SC assist rate %ile: 100 = highest assist rate in D-I. SC TOV rate %ile: ${def?"100 = forces the most Self-Creation turnovers":"100 = fewest Self-Creation turnovers"}. Kick-outs are assisted catch-and-shoot 3s from an On-Ball Guard (already counted in SC assists, not added again); Kick-out PPP is the PPP of those catch-and-shoot 3s, misses included${def?", 100 = allows the fewest points":""}.</p>`;
+    body=sortTable(id,cols,rows,{sortK:"sc_ast_rate",dir:-1,maxH:"75vh"})+`<p class="note">${def?"Defense: these are opponents' numbers against this team. SC assist rate and Kick-outs/G %ile: 100 = opponents assist the most against this team; shaded red when the defense allows more than most teams, blue when it allows fewer.":"SC assist rate %ile: 100 = highest assist rate in D-I."} SC TOV rate %ile: ${def?"100 = forces the most Self-Creation turnovers":"100 = fewest Self-Creation turnovers"}. Kick-outs are assisted catch-and-shoot 3s from an On-Ball Guard (already counted in SC assists, not added again); Kick-out PPP is the PPP of those catch-and-shoot 3s, misses included${def?", 100 = allows the fewest points":""}.</p>`;
   } else {
     const rows=LT.map(t=>getRow(teamRows(side,t),tlb.bucket,tlb.sub)).filter(Boolean);
     const av=avgRow(side,tlb.bucket,tlb.sub);
